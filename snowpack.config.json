@@ -1,0 +1,14 @@
+{
+    "mount": {
+      "src": "/"
+    },
+    "buildOptions": {
+        "out": "dist/"
+    },
+    "plugins": [
+      "@snowpack/plugin-sass",
+      ["snowpack-plugin-raw", {
+        "extensions": [".template"]
+      }]
+    ]
+  }

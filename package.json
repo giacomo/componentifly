@@ -1,0 +1,19 @@
+{
+  "name": "countdown",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "snowpack dev",
+    "build": "snowpack build"
+  },
+  "devDependencies": {
+    "@snowpack/plugin-sass": "^1.4.0",
+    "@webcomponents/custom-elements": "^1.5.0",
+    "snowpack": "^3.8.8",
+    "snowpack-plugin-raw": "^1.0.0"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21"
+  }
+}

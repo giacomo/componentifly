@@ -1,0 +1,9 @@
+<div class="tooltip">
+    <span>This is counter: {{ test }}</span>
+    <span>{{count}}</span> <button (click)="updateCounter()">Add to counter</button>
+    <button (click)="resetCounter()">Reset</button>
+    <div class="flex fd--col">
+        <label for="name">Two way data binding:</label>
+        <input type="text" id="name" (value)="name"> {{ name }}
+    </div>
+</div>
