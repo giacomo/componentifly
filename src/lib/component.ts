@@ -2,6 +2,7 @@ import { StateType } from "./state-type";
 
 export abstract class Component extends HTMLElement {
     public state: StateType = {};
+    public inputAttributes = [];
 
     constructor() {
         super();
@@ -59,8 +60,16 @@ export abstract class Component extends HTMLElement {
 
     abstract get template(): typeof import("*.template");
 
+    get styleSheet(): string {
+        return '';
+    }
+
     get binding(): Record<string, () => void> {
         return {};
+    }
+
+    static get observedAttributes() {
+        return this.observedAttributes;
     }
 
     setState(name: string, value: unknown): void {
@@ -70,19 +79,53 @@ export abstract class Component extends HTMLElement {
         }
     }
 
+    private setDefaultInputs(template: string): string {
+        const regex = /\[\[\s?([a-zA-Z0-9\-\_]+)\s?\]\]/g;
+        let matches = template.match(regex);
+
+        if (matches !== null) {
+            console.log('im here');
+            matches = matches.map((match) => {
+                const inputName = match.replace(/[\[\]]+/g, '').trim();
+                console.log(match, inputName, this.getAttribute(inputName));
+                return {
+                    match: match,
+                    variable: this.getAttribute(inputName) || null,
+                };
+            }) as any;
+        } else {
+            matches = [];
+        }
+
+        for (const match of matches) {
+            template = template.replaceAll(match.match, `${match.variable}`);
+        }
+
+        return template;
+    }
+
     private getPreRenderedTemplate(): {template: HTMLTemplateElement, matches: {match: string, variable: string}[]} {
         const template = document.createElement('template')
 
-        let renderTemplate = this.template.default;
+        const renderStyleSheet = `<style>${this.styleSheet}</style>`;
+        let renderTemplate = renderStyleSheet + this.template.default;
+
+        renderTemplate = this.setDefaultInputs(renderTemplate);
 
         // extract simple properties
         const regex = /\{\{\s?([a-zA-Z0-9\-\_]+)\s?\}\}/g;
-        const matches = renderTemplate.match(regex).map((match) => {
-            return {
-                match,
-                variable: match.replace(/[\{\}]+/g, '').trim(),
-            };
-        });
+        let matches = renderTemplate.match(regex);
+        if (matches !== null) {
+            matches = matches.map((match) => {
+                    return {
+                        match,
+                        variable: match.replace(/[\{\}]+/g, '').trim(),
+                    };
+            }) as any;
+        } else {
+            matches = [] as RegExpMatchArray;
+        }
+        
 
         for (const match of matches) {
             renderTemplate = renderTemplate.replaceAll(match.match, `<span data-bind="${match.variable}"></span>`);

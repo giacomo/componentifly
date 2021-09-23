@@ -9,6 +9,7 @@
       "@snowpack/plugin-sass",
       ["snowpack-plugin-raw", {
         "extensions": [".template"]
-      }]
+      }],
+      "./plugins/snowpack-scsx-loader.js"
     ]
   }
