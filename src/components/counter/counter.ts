@@ -26,6 +26,9 @@ export class Counter extends Component {
             },
             resetCounter: () => {
                 this.state.count = 0;
+            },
+            isVisible: () => {
+                return this.state.count === 9;
             }
         };
     }

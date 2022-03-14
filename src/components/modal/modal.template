@@ -1,0 +1,30 @@
+<div class="modal__wrapper">
+    <div class="modal">
+        <div class="modal__header">
+            <div class="modal__title">
+                this is a modal
+            </div>
+            <div class="modal__close" (click)="close()">
+                <span>&times;</span>
+            </div>
+        </div>
+        <div class="modal__body">
+            <div class="modal__content">
+                <div class="modal__content__text">
+                    <p>
+                        Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                        Donec euismod, nisl eget consectetur consectetur,
+                        nisi nisl euismod nisi, euismod euismod nisi nisi
+                        euismod.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="modal__footer">
+            <div class="modal__content__buttons">
+                <ao-button name="Cancel" (click)="close()"></ao-button>
+                <ao-button name="Confirm" (click)="confirm()"></ao-button>
+            </div>
+        </div>
+    </div>
+</div>
