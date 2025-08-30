@@ -5,13 +5,13 @@ import { ModalState } from "../../states/modal.state";
 
 export class Modal extends Component {
     state: ModalState = {
-    isOpen: false,
-    data: {},
-    title: '',
-    message: '',
-    footerType: 'default',
-    name: '',
-    showForm: false
+        isOpen: false,
+        data: {},
+        title: '',
+        message: '',
+        footerType: 'default',
+        name: '',
+        showForm: false
     };
 
     get template(): any {

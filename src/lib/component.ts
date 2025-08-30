@@ -1,4 +1,5 @@
 import { StateType } from "./state-type";
+import { getDecoratedStateProps } from "./state.decorator";
 
 export abstract class Component extends HTMLElement {
   public state: StateType = {};
@@ -6,6 +7,23 @@ export abstract class Component extends HTMLElement {
 
   constructor() {
     super();
+    // Initialize state bag early
+    if (!this.state) this.state = {} as any;
+
+    // Seed state with any @StateProperty defaults already set on the instance
+    try {
+      const props = Array.from(getDecoratedStateProps(this));
+      for (const key of props) {
+        // If the instance has an own property value (assigned by field initializer), reflect it into state
+        if (Object.prototype.hasOwnProperty.call(this, key)) {
+          (this.state as any)[key] = (this as any)[key];
+        } else if (!Object.prototype.hasOwnProperty.call(this.state, key)) {
+          // Ensure the key exists in state to enable bindings even if undefined initially
+          (this.state as any)[key] = (this as any)[key];
+        }
+      }
+    } catch {}
+
     this.initTemplate();
   }
 
@@ -258,14 +276,19 @@ export abstract class Component extends HTMLElement {
   }
 
   setState(name: string, value: unknown): void {
-    if (this.state.hasOwnProperty(name)) {
-      this.state[name] = value;
-      this.updateBindings(name, this.state[name].toString());
-      // re-evaluate structural directives after state changes
-      try {
-        this.evaluateDirectives();
-      } catch (e) {}
-    }
+    // Allow setting if it's a known state key or a decorated property
+    const known =
+      this.state && Object.prototype.hasOwnProperty.call(this.state, name);
+    const decorated = getDecoratedStateProps(this).has(name);
+    if (!known && !decorated) return;
+
+  (this.state as any)[name] = value as any;
+    try {
+      this.updateBindings(name, value);
+    } catch {}
+    try {
+      this.evaluateDirectives();
+    } catch {}
   }
 
   private setDefaultInputs(template: string): string {

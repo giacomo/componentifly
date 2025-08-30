@@ -1,13 +1,14 @@
 import { Component } from "../../lib/component";
+import { StateProperty } from "../../lib/state.decorator";
 import * as html from './list.template';
 import styles from './list.style.scsx';
-import { ListState } from "../../states/list.state";
 
 export class List extends Component {
-    state: ListState = {
-        items: ['Item 1', 'Item 2', 'Item 3'],
-        objItems: [{ id: 1, name: 'Object Item 1' }, { id: 2, name: 'Object Item 2' }]
-    };
+    @StateProperty items: string[] = ['Item 1', 'Item 2', 'Item 3'];
+    @StateProperty objItems: {id: number, name: string}[] = [
+        { id: 1, name: 'Object Item 1' },
+        { id: 2, name: 'Object Item 2' }
+    ];
 
     get template(): typeof import("*.template") {
         return html;
@@ -20,27 +21,21 @@ export class List extends Component {
     get binding(): Record<string, (...args: any[]) => any> {
         return {
             addItem: () => {
-                const newItem = `Item ${this.state.items.length + 1}`;
-                this.state.items.push(newItem);
+                const newItem = `Item ${this.items.length + 1}`;
+                this.items = [...this.items, newItem];
             },
             removeItem: (text: string) => {
-                const index = this.state.items.indexOf(text);
-                if (index > -1) {
-                    this.state.items.splice(index, 1);
-                }
+                this.items = this.items.filter(i => i !== text);
             },
 
             addObjItem: () => {
-                const newId = this.state.objItems.length + 1;
+                const newId = this.objItems.length + 1;
                 const newObjItem = { id: newId, name: `Object Item ${newId}` };
-                this.state.objItems.push(newObjItem);
+                this.objItems = [...this.objItems, newObjItem];
             },
 
             removeObjItem: (item: {id: number, name: string}) => {
-                const index = this.state.objItems.findIndex(i => i.id === item.id);
-                if (index > -1) {
-                    this.state.objItems.splice(index, 1);
-                }
+                this.objItems = this.objItems.filter(i => i.id !== item.id);
             }
         };
     }
