@@ -1,7 +1,7 @@
 <div>
     <h2>This is a simple list :</h2>
     <ul>
-        <li *for="let item of items">{{ item }} <ao-button (click)="removeItem(item)">X</ao-button></li>
+        <li *for="let item of items"><span>{{ item }}</span> <ao-button (click)="removeItem(item)">X</ao-button></li>
     </ul>
     <ao-button (click)="addItem()">Add item</ao-button>
 </div>

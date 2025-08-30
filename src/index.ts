@@ -3,7 +3,7 @@ import { LogService } from './services/log.service';
 
 
 import '@webcomponents/custom-elements/src/native-shim';
-import { Framework } from './lib/framework';
+import { Framework } from './lib';
 
 import { Counter } from './components/counter/counter';
 import { Button } from './components/button/button';

@@ -4,6 +4,9 @@ import { getDecoratedStateProps } from "./state.decorator";
 export abstract class Component extends HTMLElement {
   public state: StateType = {};
   public inputAttributes = [];
+  private __rendered = false;
+  private __tmplModule: any | null = null;
+  private __styleText: string | null = null;
 
   constructor() {
     super();
@@ -24,15 +27,44 @@ export abstract class Component extends HTMLElement {
       }
     } catch {}
 
-    this.initTemplate();
+    // If a decorator provided async assets, wait briefly before initializing template
+    // Kick off template init; can be async if decorator provided paths
+    void this.ensureTemplate();
   }
 
-  connectedCallback(): void {
-    this.onInit();
-    this.syncBindings();
+  private async ensureTemplate(): Promise<void> {
+    const self: any = this as any;
+    try {
+      const maybe: any = self.__componentAssetsPromise;
+      if (maybe && typeof maybe.then === 'function') {
+        await maybe; // wait for assets to be ready
+      } else if (typeof maybe === 'function') {
+        const p = maybe();
+        if (p && typeof p.then === 'function') await p;
+      }
+    } catch {}
+    try {
+      if (!this.shadowRoot) this.initTemplate();
+    } catch {}
+  }
 
-    const shadow = this.shadowRoot;
-    if (!shadow) return;
+  async connectedCallback(): Promise<void> {
+    // Ensure template is present (synchronous for import-based, async for path-based)
+    await this.ensureTemplate();
+
+      // If template hasn't been initialized yet (async decorator), wait and retry once it's ready
+      const shadow = this.shadowRoot;
+      const self: any = this as any;
+      if (!shadow) {
+        const p: any = self.__componentAssetsPromise;
+        if (p && typeof p.then === 'function') {
+          try { p.then(() => { try { this.connectedCallback(); } catch {} }); } catch {}
+        }
+        return;
+      }
+
+      this.onInit();
+      this.syncBindings();
 
     shadow.innerHTML = shadow.innerHTML.replaceAll(/\(click\)/g, "data-click");
     shadow.innerHTML = shadow.innerHTML.replaceAll(/\(value\)/g, "data-value");
@@ -258,13 +290,19 @@ export abstract class Component extends HTMLElement {
     this.attachShadow({ mode: "open" });
     if (this.shadowRoot)
       this.shadowRoot.appendChild(renderer.template.content.cloneNode(true));
+    this.__rendered = true;
   }
 
-  // template shape is imported at runtime from .template files
-  abstract get template(): any;
+  // Template module for rendering. Subclasses can override or use @Component decorator to inject it.
+  get template(): any {
+  // Prefer dynamically loaded module if present
+  if (this.__tmplModule) return this.__tmplModule;
+  return { default: "" };
+  }
 
   get styleSheet(): string {
-    return "";
+  if (this.__styleText != null) return this.__styleText;
+  return "";
   }
 
   get binding(): Record<string, (...args: any[]) => any> {
@@ -628,32 +666,32 @@ export abstract class Component extends HTMLElement {
     // prefer id lookup in shadow root when possible
     if (shadow) {
       try {
-        const byId = shadow.getElementById(id) as T | null;
+        const byId = shadow.getElementById(id) as unknown as T | null;
         if (byId) return byId;
       } catch (e) {
         // ignore and continue
       }
 
-      const byQuery = shadow.querySelector(selectorOrId) as T | null;
+      const byQuery = shadow.querySelector(selectorOrId) as unknown as T | null;
       if (byQuery) return byQuery;
 
       const all = shadow.querySelectorAll(selectorOrId);
-      if (all && all.length > 0) return all[0] as T;
+      if (all && all.length > 0) return all[0] as unknown as T;
     }
 
     // fallback to light DOM searches
     try {
       if (isHash) {
-        const hostById = this.querySelector(`#${id}`) as T | null;
+        const hostById = this.querySelector(`#${id}`) as unknown as T | null;
         if (hostById) return hostById;
       }
     } catch (e) {}
 
-    const hostQuery = this.querySelector(selectorOrId) as T | null;
+    const hostQuery = this.querySelector(selectorOrId) as unknown as T | null;
     if (hostQuery) return hostQuery;
 
     const hostAll = this.querySelectorAll(selectorOrId);
-    if (hostAll && hostAll.length > 0) return hostAll[0] as T;
+    if (hostAll && hostAll.length > 0) return hostAll[0] as unknown as T;
 
     return null;
   }

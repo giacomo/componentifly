@@ -1,22 +1,12 @@
-import { Component } from "../../lib/component";
-import { StateProperty } from "../../lib/state.decorator";
-import * as html from './list.template';
-import styles from './list.style.scsx';
+import { Component, ComponentDecorator, StateProperty } from "../../lib";
 
+@ComponentDecorator({ templatePath: './list.html', stylePath: './list.scss'})
 export class List extends Component {
     @StateProperty items: string[] = ['Item 1', 'Item 2', 'Item 3'];
     @StateProperty objItems: {id: number, name: string}[] = [
         { id: 1, name: 'Object Item 1' },
         { id: 2, name: 'Object Item 2' }
     ];
-
-    get template(): typeof import("*.template") {
-        return html;
-    }
-
-    get styleSheet(): string {
-        return styles;
-    }
 
     get binding(): Record<string, (...args: any[]) => any> {
         return {

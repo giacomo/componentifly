@@ -1,4 +1,4 @@
-import { Component } from "../../lib/component";
+import { Component } from "../../lib";
 import * as html from './button.template';
 import styles from './button.style.scsx';
 

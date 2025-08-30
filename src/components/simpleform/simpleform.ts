@@ -1,4 +1,4 @@
-import { Component } from "../../lib/component";
+import { Component } from "../../lib";
 import * as html from './simpleform.template';
 import styles from './simpleform.style.scsx';
 import { SimpleformState } from "../../states/simpleform.state";

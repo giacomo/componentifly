@@ -1,4 +1,4 @@
-import { Component } from "../../lib/component";
+import { Component } from "../../lib";
 import * as html from './modal-demo.template';
 import styles from './modal-demo.style.scsx';
 

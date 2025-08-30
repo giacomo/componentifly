@@ -1,4 +1,4 @@
-import { Component } from "../../lib/component";
+import { Component } from "../../lib";
 import * as html from './counter.template';
 import styles from './counter.style.scsx';
 import { CounterState } from "../../states/counter.state";

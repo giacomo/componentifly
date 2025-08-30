@@ -1,4 +1,4 @@
-import { Component } from "../../lib/component";
+import { Component } from "../../lib";
 import * as html from './modal.template';
 import styles from './modal.style.scsx';
 import { ModalState } from "../../states/modal.state";
