@@ -1,4 +1,4 @@
-import { Component, ComponentDecorator, StateProperty } from "../../lib";
+import { Component, ComponentDecorator, StateProperty, Expose } from "../../lib";
 
 @ComponentDecorator({ templatePath: './list.html', stylePath: './list.scss'})
 export class List extends Component {
@@ -8,25 +8,26 @@ export class List extends Component {
         { id: 2, name: 'Object Item 2' }
     ];
 
-    get binding(): Record<string, (...args: any[]) => any> {
-        return {
-            addItem: () => {
-                const newItem = `Item ${this.items.length + 1}`;
-                this.items = [...this.items, newItem];
-            },
-            removeItem: (text: string) => {
-                this.items = this.items.filter(i => i !== text);
-            },
+    @Expose
+    addItem(): void {
+        const newItem = `Item ${this.items.length + 1}`;
+        this.items = [...this.items, newItem];
+    }
 
-            addObjItem: () => {
-                const newId = this.objItems.length + 1;
-                const newObjItem = { id: newId, name: `Object Item ${newId}` };
-                this.objItems = [...this.objItems, newObjItem];
-            },
+    @Expose
+    removeItem(text: string): void {
+        this.items = this.items.filter(i => i !== text);
+    }
 
-            removeObjItem: (item: {id: number, name: string}) => {
-                this.objItems = this.objItems.filter(i => i.id !== item.id);
-            }
-        };
+    @Expose
+    addObjItem(): void {
+        const newId = this.objItems.length + 1;
+        const newObjItem = { id: newId, name: `Object Item ${newId}` };
+        this.objItems = [...this.objItems, newObjItem];
+    }
+
+    @Expose
+    removeObjItem(item: {id: number, name: string}): void {
+        this.objItems = this.objItems.filter(i => i.id !== item.id);
     }
 }

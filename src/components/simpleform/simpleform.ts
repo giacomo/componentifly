@@ -16,7 +16,5 @@ export class Simpleform extends Component {
         return styles;
     }
 
-    get binding(): Record<string, (...args: any[]) => any> {
-        return {};
-    }
+    // No methods to expose for this component
 }

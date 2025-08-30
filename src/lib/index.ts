@@ -10,3 +10,4 @@ export { Component as ComponentDecorator } from "./component.decorator";
 export { StateProperty, getDecoratedStateProps } from "./state.decorator";
 export type { StateType } from "./state-type";
 export { Framework } from "./framework";
+export { Expose } from "./expose.decorator";

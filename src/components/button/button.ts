@@ -15,7 +15,5 @@ export class Button extends Component {
         return styles;
     }
 
-    get binding(): Record<string, (...args: any[]) => any> {
-        return {};
-    }
+    // No exposed methods needed for this presentational component
 }

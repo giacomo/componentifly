@@ -1,5 +1,6 @@
 import { StateType } from "./state-type";
 import { getDecoratedStateProps } from "./state.decorator";
+import { getExposedMethods } from "./expose.decorator";
 
 export abstract class Component extends HTMLElement {
   public state: StateType = {};
@@ -96,11 +97,8 @@ export abstract class Component extends HTMLElement {
             try {
               if (expr.endsWith("()")) {
                 const fnName = expr.replace(/\(\)$/, "");
-                const fn =
-                  (this.binding && this.binding[fnName]) ||
-                  (this as any)[fnName];
-                if (typeof fn === "function") {
-                  show = !!fn.call(this);
+                if (getExposedMethods(this).has(fnName) && typeof (this as any)[fnName] === "function") {
+                  try { show = !!(this as any)[fnName].call(this); } catch (e) { show = false; }
                 }
               } else if (expr) {
                 if (
@@ -111,8 +109,8 @@ export abstract class Component extends HTMLElement {
                   )
                 ) {
                   show = !!(this as any).state[expr];
-                } else if (typeof (this as any)[expr] === "function") {
-                  show = !!(this as any)[expr].call(this);
+                } else if (getExposedMethods(this).has(expr) && typeof (this as any)[expr] === "function") {
+                  try { show = !!(this as any)[expr].call(this); } catch (e) { show = false; }
                 }
               }
             } catch (e) {
@@ -176,7 +174,7 @@ export abstract class Component extends HTMLElement {
       // don't attach listeners to *for template nodes; they should act as templates only
       if (el.hasAttribute("data-for-expression")) continue;
       if (el.getAttribute("data-listener-attached") === "true") continue;
-      el.addEventListener("click", (e: Event) => {
+  el.addEventListener("click", (e: Event) => {
         const target = e.currentTarget as HTMLElement;
         const callback = target.getAttribute("data-click") || "";
         const m = callback.match(/^\s*([a-zA-Z0-9_\$]+)\s*(?:\((.*)\))?\s*$/);
@@ -189,8 +187,11 @@ export abstract class Component extends HTMLElement {
         }
         const name = m[1];
         const argsRaw = m[2];
-        const fn =
-          (this.binding && (this.binding as any)[name]) || (this as any)[name];
+        // Only allow explicitly exposed methods
+        let fn: any = null;
+        if (getExposedMethods(this).has(name) && typeof (this as any)[name] === 'function') {
+          fn = (this as any)[name];
+        }
         if (typeof fn === "function") {
           let args: any[] = [];
           // prefer actual JS values attached during clone time
@@ -233,9 +234,7 @@ export abstract class Component extends HTMLElement {
             console.error("binding error", err);
           }
         } else {
-          try {
-            console.warn("binding not found for", name, this.binding);
-          } catch (e) {}
+          try { console.warn("exposed method not found:", name); } catch (e) {}
         }
         this.syncBindings();
       });
@@ -305,9 +304,7 @@ export abstract class Component extends HTMLElement {
   return "";
   }
 
-  get binding(): Record<string, (...args: any[]) => any> {
-    return {};
-  }
+  // Legacy binding getter removed; use @Expose on methods to make them callable from templates.
 
   static get observedAttributes() {
     return this.observedAttributes;
@@ -403,10 +400,8 @@ export abstract class Component extends HTMLElement {
         try {
           if (expr.endsWith("()")) {
             const fnName = expr.replace(/\(\)$/, "");
-            const fn =
-              (this.binding && this.binding[fnName]) || (this as any)[fnName];
-            if (typeof fn === "function") {
-              show = !!fn.call(this);
+            if (getExposedMethods(this).has(fnName) && typeof (this as any)[fnName] === "function") {
+              try { show = !!(this as any)[fnName].call(this); } catch (e) { show = false; }
             }
           } else if (expr) {
             if (
@@ -414,8 +409,8 @@ export abstract class Component extends HTMLElement {
               Object.prototype.hasOwnProperty.call((this as any).state, expr)
             ) {
               show = !!(this as any).state[expr];
-            } else if (typeof (this as any)[expr] === "function") {
-              show = !!(this as any)[expr].call(this);
+            } else if (getExposedMethods(this).has(expr) && typeof (this as any)[expr] === "function") {
+              try { show = !!(this as any)[expr].call(this); } catch (e) { show = false; }
             }
           }
         } catch (e) {

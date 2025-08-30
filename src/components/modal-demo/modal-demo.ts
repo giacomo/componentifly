@@ -1,4 +1,4 @@
-import { Component } from "../../lib";
+import { Component, Expose } from "../../lib";
 import * as html from './modal-demo.template';
 import styles from './modal-demo.style.scsx';
 
@@ -13,15 +13,23 @@ export class ModalDemo extends Component {
         return styles;
     }
 
-    get binding(): Record<string, (...args: any[]) => any> {
-        return {
-            openSimple: () => this.openTestcase({title: 'Simple', message: 'A simple modal message.'}),
-            openWithTitle: () => this.openTestcase({title: 'Titled Modal', message: 'Modal with a custom title.'}),
-            openConfirmOnly: () => this.openTestcase({title: 'Confirm Only', message: 'Only a confirm button is shown.', footerType: 'confirm-only'}),
-            openNoFooter: () => this.openTestcase({title: 'No Footer', message: 'This modal has no footer.', footerType: 'none'}),
-            openLargeContent: () => this.openTestcase({title: 'Large Content', message: new Array(100).fill('Long content line.').join('\n')}),
-            openForm: () => this.openTestcase({title: 'Form in modal', message: 'Please enter your name', footerType: 'default', showForm: true})
-        };
+    @Expose openSimple() {
+        this.openTestcase({title: 'Simple', message: 'A simple modal message.'});
+    }
+    @Expose openWithTitle() {
+        this.openTestcase({title: 'Titled Modal', message: 'Modal with a custom title.'});
+    }
+    @Expose openConfirmOnly() {
+        this.openTestcase({title: 'Confirm Only', message: 'Only a confirm button is shown.', footerType: 'confirm-only'});
+    }
+    @Expose openNoFooter() {
+        this.openTestcase({title: 'No Footer', message: 'This modal has no footer.', footerType: 'none'});
+    }
+    @Expose openLargeContent() {
+        this.openTestcase({title: 'Large Content', message: new Array(100).fill('Long content line.').join('\n')});
+    }
+    @Expose openForm() {
+        this.openTestcase({title: 'Form in modal', message: 'Please enter your name', footerType: 'default', showForm: true});
     }
 
     private openTestcase(data: any): void {

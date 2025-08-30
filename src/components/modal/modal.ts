@@ -1,4 +1,4 @@
-import { Component } from "../../lib";
+import { Component, Expose } from "../../lib";
 import * as html from './modal.template';
 import styles from './modal.style.scsx';
 import { ModalState } from "../../states/modal.state";
@@ -22,15 +22,38 @@ export class Modal extends Component {
         return styles;
     }
 
-    get binding(): Record<string, (...args: any[]) => any> {
-        return {
-            close: () => {
-                this.close();
-            },
-            confirm: () => {
-                this.confirm();
+    @Expose
+    close(): void {
+        this.setState('isOpen', false);
+        this.removeAttribute('open');
+        // reset footer/ui state
+        const shadow = (this as any).shadowRoot as ShadowRoot | null;
+        if (shadow) {
+            const footer = shadow.querySelector('.modal__footer') as HTMLElement | null;
+            const cancelBtn = shadow.getElementById('modal-cancel') as HTMLElement | null;
+            const confirmBtn = shadow.getElementById('modal-confirm') as HTMLElement | null;
+            if (footer) footer.style.display = '';
+            if (cancelBtn) cancelBtn.style.display = '';
+            if (confirmBtn) confirmBtn.style.display = '';
+        }
+    }
+
+    @Expose
+    confirm(): void {
+        try {
+            // ensure name is forwarded in data
+            if ((this.state as any).name) {
+                this.state.data = Object.assign({}, this.state.data, {name: (this.state as any).name});
             }
-        };
+
+            const event = new CustomEvent('confirm', {detail: this.state.data, bubbles: true, composed: true});
+            this.dispatchEvent(event);
+
+        } catch (err) {
+            try { console.error('Modal.confirm error', err); } catch (e) {}
+        } finally {
+            this.close();
+        }
     }
 
     // helper bindings for template conditional rendering (simplified)
@@ -54,9 +77,9 @@ export class Modal extends Component {
         return ['open'];
     }
 
-    connectedCallback(): void {
+    async connectedCallback(): Promise<void> {
         // ensure base wiring runs
-        super.connectedCallback();
+        await super.connectedCallback();
 
         // also wire footer buttons directly to avoid any shadow/bubbling issues
         const shadow = (this as any).shadowRoot as ShadowRoot | null;
@@ -134,35 +157,4 @@ export class Modal extends Component {
         }
     }
 
-    close(): void {
-        this.setState('isOpen', false);
-        this.removeAttribute('open');
-        // reset footer/ui state
-        const shadow = (this as any).shadowRoot as ShadowRoot | null;
-        if (shadow) {
-            const footer = shadow.querySelector('.modal__footer') as HTMLElement | null;
-            const cancelBtn = shadow.getElementById('modal-cancel') as HTMLElement | null;
-            const confirmBtn = shadow.getElementById('modal-confirm') as HTMLElement | null;
-            if (footer) footer.style.display = '';
-            if (cancelBtn) cancelBtn.style.display = '';
-            if (confirmBtn) confirmBtn.style.display = '';
-        }
-    }
-
-    confirm(): void {
-        try {
-            // ensure name is forwarded in data
-            if ((this.state as any).name) {
-                this.state.data = Object.assign({}, this.state.data, {name: (this.state as any).name});
-            }
-
-            const event = new CustomEvent('confirm', {detail: this.state.data, bubbles: true, composed: true});
-            this.dispatchEvent(event);
-
-        } catch (err) {
-            try { console.error('Modal.confirm error', err); } catch (e) {}
-        } finally {
-            this.close();
-        }
-    }
 }
