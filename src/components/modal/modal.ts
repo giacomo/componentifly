@@ -1,30 +1,20 @@
-import { Component, Expose } from "../../lib";
-import * as html from './modal.template';
-import styles from './modal.style.scsx';
-import { ModalState } from "../../states/modal.state";
+import { Component, ComponentDecorator, Expose, StateProperty } from "../../lib";
 
+@ComponentDecorator({ templatePath: './modal.html', stylePath: './modal.scss', selector: 'ao-modal' })
 export class Modal extends Component {
-    state: ModalState = {
-        isOpen: false,
-        data: {},
-        title: '',
-        message: '',
-        footerType: 'default',
-        name: '',
-        showForm: false
-    };
+    @StateProperty isOpen: boolean = false;
+    @StateProperty data: any = {};
+    @StateProperty title: string = '';
+    @StateProperty message: string = '';
+    @StateProperty footerType: 'default' | 'confirm-only' | 'none' | 'custom' = 'default';
+    @StateProperty name: string = '';
+    @StateProperty showForm: boolean = false;
 
-    get template(): any {
-        return html;
-    }
-
-    get styleSheet(): string {
-        return styles;
-    }
+    // template & styles provided by decorator
 
     @Expose
     close(): void {
-        this.setState('isOpen', false);
+        this.isOpen = false;
         this.removeAttribute('open');
         // reset footer/ui state
         const shadow = (this as any).shadowRoot as ShadowRoot | null;
@@ -42,11 +32,11 @@ export class Modal extends Component {
     confirm(): void {
         try {
             // ensure name is forwarded in data
-            if ((this.state as any).name) {
-                this.state.data = Object.assign({}, this.state.data, {name: (this.state as any).name});
+            if (this.name) {
+                this.data = Object.assign({}, this.data, {name: this.name});
             }
 
-            const event = new CustomEvent('confirm', {detail: this.state.data, bubbles: true, composed: true});
+            const event = new CustomEvent('confirm', {detail: this.data, bubbles: true, composed: true});
             this.dispatchEvent(event);
 
         } catch (err) {
@@ -58,19 +48,19 @@ export class Modal extends Component {
 
     // helper bindings for template conditional rendering (simplified)
     public showFooter(): boolean {
-        return (this.state as any).footerType !== 'none';
+    return this.footerType !== 'none';
     }
 
     public footerIsDefault(): boolean {
-        return (this.state as any).footerType === 'default';
+    return this.footerType === 'default';
     }
 
     public footerIsConfirmOnly(): boolean {
-        return (this.state as any).footerType === 'confirm-only';
+    return this.footerType === 'confirm-only';
     }
 
     public footerIsCustom(): boolean {
-        return (this.state as any).footerType === 'custom';
+    return this.footerType === 'custom';
     }
 
     static get observedAttributes() {
@@ -114,20 +104,19 @@ export class Modal extends Component {
 
     attributeChangedCallback(name: string, oldValue: string, newValue: string): void {
         if (name === 'open') {
-            const isOpen = this.hasAttribute('open');
-            this.setState('isOpen', isOpen);
+            this.isOpen = this.hasAttribute('open');
         }
     }
 
     open(data: any = {}): void {
         // normalize common fields for simple mustache bindings
-        this.setState('data', data);
-        this.setState('title', data.title || '');
-        this.setState('message', data.message || '');
-        this.setState('footerType', data.footerType || 'default');
-    this.setState('name', data.name || '');
-    this.setState('showForm', !!data.showForm);
-        this.setState('isOpen', true);
+    this.data = data;
+    this.title = data.title || '';
+    this.message = data.message || '';
+    this.footerType = data.footerType || 'default';
+    this.name = data.name || '';
+    this.showForm = !!data.showForm;
+    this.isOpen = true;
         this.setAttribute('open', '');
 
         // runtime DOM adjustments for footer variants
@@ -138,11 +127,11 @@ export class Modal extends Component {
             const confirmBtn = shadow.getElementById('modal-confirm') as HTMLElement | null;
 
             if (footer) {
-                footer.style.display = (this.state as any).footerType === 'none' ? 'none' : '';
+                footer.style.display = this.footerType === 'none' ? 'none' : '';
             }
 
             if (cancelBtn) {
-                cancelBtn.style.display = (this.state as any).footerType === 'confirm-only' ? 'none' : '';
+                cancelBtn.style.display = this.footerType === 'confirm-only' ? 'none' : '';
             }
 
             if (confirmBtn) {
@@ -152,7 +141,7 @@ export class Modal extends Component {
             // show/hide name input form
             const form = shadow.querySelector('.modal__form') as HTMLElement | null;
             if (form) {
-                form.style.display = (this.state as any).showForm ? 'block' : 'none';
+                form.style.display = this.showForm ? 'block' : 'none';
             }
         }
     }

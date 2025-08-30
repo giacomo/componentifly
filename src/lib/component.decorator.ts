@@ -13,6 +13,11 @@ export interface ComponentOptions {
    */
   selector?: string;
   /**
+   * Whether to automatically call customElements.define. Defaults to false.
+   * Prefer using Framework.registerComponent(s) for explicit registration.
+   */
+  autoRegister?: boolean;
+  /**
   * Optional: relative or absolute path to the HTML template file (e.g., './list.html').
    */
   templatePath?: string;
@@ -56,12 +61,18 @@ function normalizeTemplateModule(tpl: any): any {
  *   @Component({ template: html, style: styles })
  *   export class List extends ComponentBase { ... }
  */
+const SELECTOR_KEY = Symbol.for("__component_selector");
+export function getComponentSelector(ctor: any): string | undefined {
+  if (!ctor) return undefined;
+  return (ctor as any)[SELECTOR_KEY] || (ctor as any).selector || (ctor as any).is;
+}
+
 export function Component(options: ComponentOptions): ClassDecorator {
   return function (target: any) {
     if (!target || typeof target !== "function") return;
 
     const proto = target.prototype;
-    const { template, style, selector, templatePath, stylePath } = (options || {}) as ComponentOptions;
+    const { template, style, selector, templatePath, stylePath, autoRegister } = (options || {}) as ComponentOptions;
 
     // Try to infer the caller module URL (the component file) for resolving relative paths
     const thisModuleUrl = (import.meta as any)?.url as string | undefined;
@@ -170,8 +181,15 @@ export function Component(options: ComponentOptions): ClassDecorator {
       try { void ensureLoad(); } catch {}
     }
 
-    // Optional: auto-define the custom element if a selector is provided
-    if (selector && typeof selector === "string") {
+    // Store selector metadata on the constructor for the Framework to use
+    if (selector && typeof selector === 'string') {
+      try { (target as any)[SELECTOR_KEY] = selector; } catch {}
+      try { (target as any).selector = (target as any).selector || selector; } catch {}
+      try { (target as any).is = (target as any).is || selector; } catch {}
+    }
+
+    // Optional: auto-define only when explicitly requested
+    if (autoRegister && selector && typeof selector === "string") {
       try {
         if (!customElements.get(selector)) {
           customElements.define(selector, target as CustomElementConstructor);

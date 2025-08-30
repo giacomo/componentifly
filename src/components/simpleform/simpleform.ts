@@ -1,20 +1,13 @@
-import { Component } from "../../lib";
-import * as html from './simpleform.template';
-import styles from './simpleform.style.scsx';
+import { Component, ComponentDecorator } from "../../lib";
 import { SimpleformState } from "../../states/simpleform.state";
 
+@ComponentDecorator({ templatePath: './simpleform.html', stylePath: './simpleform.scss', selector: 'ao-simpleform' })
 export class Simpleform extends Component {
     state: SimpleformState = {
         name: 'Bob',
     };
 
-    get template(): typeof import("*.template") {
-        return html;
-    }
-
-    get styleSheet(): string {
-        return styles;
-    }
+    // template & styles provided by decorator
 
     // No methods to expose for this component
 }

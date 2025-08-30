@@ -19,12 +19,8 @@ export abstract class Component extends HTMLElement {
       const props = Array.from(getDecoratedStateProps(this));
       for (const key of props) {
         // If the instance has an own property value (assigned by field initializer), reflect it into state
-        if (Object.prototype.hasOwnProperty.call(this, key)) {
-          (this.state as any)[key] = (this as any)[key];
-        } else if (!Object.prototype.hasOwnProperty.call(this.state, key)) {
-          // Ensure the key exists in state to enable bindings even if undefined initially
-          (this.state as any)[key] = (this as any)[key];
-        }
+        const val = (this as any)[key];
+        (this.state as any)[key] = val;
       }
     } catch {}
 
@@ -37,11 +33,11 @@ export abstract class Component extends HTMLElement {
     const self: any = this as any;
     try {
       const maybe: any = self.__componentAssetsPromise;
-      if (maybe && typeof maybe.then === 'function') {
+      if (maybe && typeof maybe.then === "function") {
         await maybe; // wait for assets to be ready
-      } else if (typeof maybe === 'function') {
+      } else if (typeof maybe === "function") {
         const p = maybe();
-        if (p && typeof p.then === 'function') await p;
+        if (p && typeof p.then === "function") await p;
       }
     } catch {}
     try {
@@ -53,19 +49,25 @@ export abstract class Component extends HTMLElement {
     // Ensure template is present (synchronous for import-based, async for path-based)
     await this.ensureTemplate();
 
-      // If template hasn't been initialized yet (async decorator), wait and retry once it's ready
-      const shadow = this.shadowRoot;
-      const self: any = this as any;
-      if (!shadow) {
-        const p: any = self.__componentAssetsPromise;
-        if (p && typeof p.then === 'function') {
-          try { p.then(() => { try { this.connectedCallback(); } catch {} }); } catch {}
-        }
-        return;
+    // If template hasn't been initialized yet (async decorator), wait and retry once it's ready
+    const shadow = this.shadowRoot;
+    const self: any = this as any;
+    if (!shadow) {
+      const p: any = self.__componentAssetsPromise;
+      if (p && typeof p.then === "function") {
+        try {
+          p.then(() => {
+            try {
+              this.connectedCallback();
+            } catch {}
+          });
+        } catch {}
       }
+      return;
+    }
 
-      this.onInit();
-      this.syncBindings();
+    this.onInit();
+    this.syncBindings();
 
     shadow.innerHTML = shadow.innerHTML.replaceAll(/\(click\)/g, "data-click");
     shadow.innerHTML = shadow.innerHTML.replaceAll(/\(value\)/g, "data-value");
@@ -97,8 +99,15 @@ export abstract class Component extends HTMLElement {
             try {
               if (expr.endsWith("()")) {
                 const fnName = expr.replace(/\(\)$/, "");
-                if (getExposedMethods(this).has(fnName) && typeof (this as any)[fnName] === "function") {
-                  try { show = !!(this as any)[fnName].call(this); } catch (e) { show = false; }
+                if (
+                  getExposedMethods(this).has(fnName) &&
+                  typeof (this as any)[fnName] === "function"
+                ) {
+                  try {
+                    show = !!(this as any)[fnName].call(this);
+                  } catch (e) {
+                    show = false;
+                  }
                 }
               } else if (expr) {
                 if (
@@ -109,8 +118,15 @@ export abstract class Component extends HTMLElement {
                   )
                 ) {
                   show = !!(this as any).state[expr];
-                } else if (getExposedMethods(this).has(expr) && typeof (this as any)[expr] === "function") {
-                  try { show = !!(this as any)[expr].call(this); } catch (e) { show = false; }
+                } else if (
+                  getExposedMethods(this).has(expr) &&
+                  typeof (this as any)[expr] === "function"
+                ) {
+                  try {
+                    show = !!(this as any)[expr].call(this);
+                  } catch (e) {
+                    show = false;
+                  }
                 }
               }
             } catch (e) {
@@ -174,7 +190,7 @@ export abstract class Component extends HTMLElement {
       // don't attach listeners to *for template nodes; they should act as templates only
       if (el.hasAttribute("data-for-expression")) continue;
       if (el.getAttribute("data-listener-attached") === "true") continue;
-  el.addEventListener("click", (e: Event) => {
+      el.addEventListener("click", (e: Event) => {
         const target = e.currentTarget as HTMLElement;
         const callback = target.getAttribute("data-click") || "";
         const m = callback.match(/^\s*([a-zA-Z0-9_\$]+)\s*(?:\((.*)\))?\s*$/);
@@ -189,14 +205,20 @@ export abstract class Component extends HTMLElement {
         const argsRaw = m[2];
         // Only allow explicitly exposed methods
         let fn: any = null;
-        if (getExposedMethods(this).has(name) && typeof (this as any)[name] === 'function') {
+        if (
+          getExposedMethods(this).has(name) &&
+          typeof (this as any)[name] === "function"
+        ) {
           fn = (this as any)[name];
         }
         if (typeof fn === "function") {
           let args: any[] = [];
           // prefer actual JS values attached during clone time
           try {
-            if ((target as any).__forArgs && Array.isArray((target as any).__forArgs)) {
+            if (
+              (target as any).__forArgs &&
+              Array.isArray((target as any).__forArgs)
+            ) {
               args = (target as any).__forArgs;
             }
           } catch (e) {}
@@ -234,7 +256,9 @@ export abstract class Component extends HTMLElement {
             console.error("binding error", err);
           }
         } else {
-          try { console.warn("exposed method not found:", name); } catch (e) {}
+          try {
+            console.warn("exposed method not found:", name);
+          } catch (e) {}
         }
         this.syncBindings();
       });
@@ -275,8 +299,16 @@ export abstract class Component extends HTMLElement {
       if (!attr) continue;
       const bindName = attr.value;
       if (this.state.hasOwnProperty(bindName)) {
-        this.updateBindings(bindName, this.state[bindName].toString());
+        this.updateBindings(bindName, this.state[bindName]);
+        continue;
       }
+      // Fallback: read direct/decorated property value
+      try {
+        const direct = (this as any)[bindName];
+        if (direct !== undefined) {
+          this.updateBindings(bindName, direct);
+        }
+      } catch (e) {}
     }
     // re-evaluate structural directives (e.g. *if) after bindings update
     try {
@@ -290,18 +322,21 @@ export abstract class Component extends HTMLElement {
     if (this.shadowRoot)
       this.shadowRoot.appendChild(renderer.template.content.cloneNode(true));
     this.__rendered = true;
+    try {
+      this.syncBindings();
+    } catch {}
   }
 
   // Template module for rendering. Subclasses can override or use @Component decorator to inject it.
   get template(): any {
-  // Prefer dynamically loaded module if present
-  if (this.__tmplModule) return this.__tmplModule;
-  return { default: "" };
+    // Prefer dynamically loaded module if present
+    if (this.__tmplModule) return this.__tmplModule;
+    return { default: "" };
   }
 
   get styleSheet(): string {
-  if (this.__styleText != null) return this.__styleText;
-  return "";
+    if (this.__styleText != null) return this.__styleText;
+    return "";
   }
 
   // Legacy binding getter removed; use @Expose on methods to make them callable from templates.
@@ -317,7 +352,7 @@ export abstract class Component extends HTMLElement {
     const decorated = getDecoratedStateProps(this).has(name);
     if (!known && !decorated) return;
 
-  (this.state as any)[name] = value as any;
+    (this.state as any)[name] = value as any;
     try {
       this.updateBindings(name, value);
     } catch {}
@@ -363,7 +398,7 @@ export abstract class Component extends HTMLElement {
     renderTemplate = this.setDefaultInputs(renderTemplate);
 
     // extract simple properties
-    const regex = /\{\{\s?([a-zA-Z0-9\-\_]+)\s?\}\}/g;
+    const regex = /\{\{\s?([a-zA-Z0-9\-\_\.]+)\s?\}\}/g;
     const raw = [...renderTemplate.matchAll(regex)];
     const matches: { match: string; variable: string }[] = raw.map((m) => ({
       match: m[0],
@@ -400,8 +435,15 @@ export abstract class Component extends HTMLElement {
         try {
           if (expr.endsWith("()")) {
             const fnName = expr.replace(/\(\)$/, "");
-            if (getExposedMethods(this).has(fnName) && typeof (this as any)[fnName] === "function") {
-              try { show = !!(this as any)[fnName].call(this); } catch (e) { show = false; }
+            if (
+              getExposedMethods(this).has(fnName) &&
+              typeof (this as any)[fnName] === "function"
+            ) {
+              try {
+                show = !!(this as any)[fnName].call(this);
+              } catch (e) {
+                show = false;
+              }
             }
           } else if (expr) {
             if (
@@ -409,8 +451,15 @@ export abstract class Component extends HTMLElement {
               Object.prototype.hasOwnProperty.call((this as any).state, expr)
             ) {
               show = !!(this as any).state[expr];
-            } else if (getExposedMethods(this).has(expr) && typeof (this as any)[expr] === "function") {
-              try { show = !!(this as any)[expr].call(this); } catch (e) { show = false; }
+            } else if (
+              getExposedMethods(this).has(expr) &&
+              typeof (this as any)[expr] === "function"
+            ) {
+              try {
+                show = !!(this as any)[expr].call(this);
+              } catch (e) {
+                show = false;
+              }
             }
           }
         } catch (e) {
@@ -542,12 +591,16 @@ export abstract class Component extends HTMLElement {
                   }
 
                   // detect references to the loop variable inside attribute values (e.g. item or item.prop)
-                  const varRefRegex = new RegExp(`\\b${itemName}(?:\\.([a-zA-Z0-9_\\$]+))?\\b`);
+                  const varRefRegex = new RegExp(
+                    `\\b${itemName}(?:\\.([a-zA-Z0-9_\\$]+))?\\b`
+                  );
                   const vr = val.match(varRefRegex);
                   if (vr) {
                     try {
                       const prop = vr[1];
-                      (node as any).__forArgs = [(prop ? (item as any)[prop] : item)];
+                      (node as any).__forArgs = [
+                        prop ? (item as any)[prop] : item,
+                      ];
                     } catch (e) {
                       (node as any).__forArgs = [item];
                     }

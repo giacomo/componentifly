@@ -1,17 +1,10 @@
-import { Component, Expose } from "../../lib";
-import * as html from './modal-demo.template';
-import styles from './modal-demo.style.scsx';
+import { Component, ComponentDecorator, Expose } from "../../lib";
 
+@ComponentDecorator({ templatePath: './modal-demo.html', stylePath: './modal-demo.scss', selector: 'ao-modal-demo' })
 export class ModalDemo extends Component {
     state = { submittedName: '' };
 
-    get template(): any {
-        return html;
-    }
-
-    get styleSheet(): string {
-        return styles;
-    }
+    // template & styles provided by decorator
 
     @Expose openSimple() {
         this.openTestcase({title: 'Simple', message: 'A simple modal message.'});

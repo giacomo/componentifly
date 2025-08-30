@@ -1,6 +1,10 @@
 import { Component, ComponentDecorator, StateProperty, Expose } from "../../lib";
 
-@ComponentDecorator({ templatePath: './list.html', stylePath: './list.scss'})
+@ComponentDecorator({
+    templatePath: './list.html',
+    stylePath: './list.scss',
+    selector: 'ao-list'
+})
 export class List extends Component {
     @StateProperty items: string[] = ['Item 1', 'Item 2', 'Item 3'];
     @StateProperty objItems: {id: number, name: string}[] = [
