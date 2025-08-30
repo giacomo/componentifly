@@ -1,0 +1,5 @@
+.modal-demo { display:flex; flex-direction:column; gap:12px; align-items:flex-start; }
+.demo-grid { display:flex; gap:8px; flex-wrap:wrap; }
+
+/* ensure modal body can scroll for large content */
+.modal__body { max-height: 60vh; overflow: auto; }

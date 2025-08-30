@@ -2,12 +2,12 @@
     <span>Actual counter value: {{count}}</span>
     <!-- if count is 9, then span will be visible -->
     <span *if="isVisible()">
-        arririved 9
+        Yeah you did it!
     </span>
 
     <div class="button__group">
-        <ao-button name="+1" (click)="addCounter()"></ao-button>
-        <ao-button name="-1" (click)="subtractCounter()"></ao-button>
-        <ao-button name="Reset" (click)="resetCounter()"></ao-button>
+        <ao-button (click)="addCounter()">+1</ao-button>
+        <ao-button (click)="subtractCounter()">-1</ao-button>
+        <ao-button (click)="resetCounter()">Reset</ao-button>
     </div>
 </div>

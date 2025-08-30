@@ -1,0 +1,12 @@
+<div class="modal-demo">
+    <div class="demo-grid">
+        <ao-button (click)="openSimple()">Simple message</ao-button>
+        <button (click)="openWithTitle()">With title</button>
+        <button (click)="openConfirmOnly()">Confirm only</button>
+        <button (click)="openNoFooter()">No footer</button>
+        <button (click)="openLargeContent()">Large content</button>
+        <button (click)="openForm()">Form content</button>
+    </div>
+    <ao-modal id="demoModal"></ao-modal>
+    <div class="demo-result">Last submitted name: {{submittedName}}</div>
+</div>

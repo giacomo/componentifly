@@ -9,6 +9,8 @@ import { Counter } from './components/counter/counter';
 import { Button } from './components/button/button';
 import { Simpleform } from './components/simpleform/simpleform';
 import { Modal } from './components/modal/modal';
+import { ModalDemo } from './components/modal-demo/modal-demo';
+import { List } from './components/list/list';
 
 
 // write your code here.
@@ -18,6 +20,8 @@ app.registerComponent('ao-button', Button);
 app.registerComponent('ao-counter', Counter);
 app.registerComponent('ao-simpleform', Simpleform);
 app.registerComponent('ao-modal', Modal);
+app.registerComponent('ao-modal-demo', ModalDemo);
+app.registerComponent('ao-list', List);
 
 const logger = new LogService('foo');
 

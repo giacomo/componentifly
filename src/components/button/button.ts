@@ -15,7 +15,7 @@ export class Button extends Component {
         return styles;
     }
 
-    get binding(): Record<string, () => void> {
+    get binding(): Record<string, (...args: any[]) => any> {
         return {};
     }
 }

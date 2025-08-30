@@ -1,8 +1,8 @@
-<div class="modal__wrapper">
-    <div class="modal">
+<div class="modal__wrapper" (click)="close()">
+    <div class="modal" onclick="event.stopPropagation()">
         <div class="modal__header">
             <div class="modal__title">
-                this is a modal
+                {{title}}
             </div>
             <div class="modal__close" (click)="close()">
                 <span>&times;</span>
@@ -11,19 +11,18 @@
         <div class="modal__body">
             <div class="modal__content">
                 <div class="modal__content__text">
-                    <p>
-                        Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                        Donec euismod, nisl eget consectetur consectetur,
-                        nisi nisl euismod nisi, euismod euismod nisi nisi
-                        euismod.
-                    </p>
+                    {{message}}
+                </div>
+                <div class="modal__form" style="display:none;">
+                    <label for="modal-input-name">What is your name?</label>
+                    <input id="modal-input-name" type="text" data-value="name" />
                 </div>
             </div>
         </div>
         <div class="modal__footer">
             <div class="modal__content__buttons">
-                <ao-button name="Cancel" (click)="close()"></ao-button>
-                <ao-button name="Confirm" (click)="confirm()"></ao-button>
+                <ao-button id="modal-cancel" name="Cancel" (click)="close()"></ao-button>
+                <ao-button id="modal-confirm" name="Confirm" (click)="confirm()"></ao-button>
             </div>
         </div>
     </div>
