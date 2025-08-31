@@ -1,3 +1,4 @@
+import { data } from "cheerio/lib/api/attributes";
 import {
   Component,
   ComponentDecorator,
@@ -11,9 +12,7 @@ import {
   selector: "ao-modal-demo",
 })
 export class ModalDemo extends Component {
-  @StateProperty submittedName: string = "";
-
-  // template & styles provided by decorator
+  @StateProperty submittedName: string = 'Paul';
 
   @Expose openSimple() {
     this.openTestcase({ title: "Simple", message: "A simple modal message." });
@@ -50,6 +49,9 @@ export class ModalDemo extends Component {
       message: "Please enter your name",
       footerType: "default",
       showForm: true,
+      data: {
+        name: this.submittedName
+      }
     });
   }
 
@@ -62,7 +64,10 @@ export class ModalDemo extends Component {
         console.log("Modal confirmed with data:", result);
         const name =
           result.data && result.data.name ? String(result.data.name) : "";
-        this.setState("submittedName", name);
+        
+        // Update the state property
+        if (!this.state || typeof this.state !== 'object') this.state = {};
+        this.submittedName = name;
       }
     }
   }

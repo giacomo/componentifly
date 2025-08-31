@@ -14,53 +14,170 @@ export abstract class Component extends HTMLElement {
     // Initialize state bag early
     if (!this.state) this.state = {} as any;
 
-    // Ensure decorated props have live accessors on the instance itself, so
-    // class-field own properties never shadow prototype setters (works across TS transpile modes)
+    // Install instance-level accessors for decorated state properties immediately
+    // so subclass field initializers (which run after super()) will invoke these
+    // setters instead of creating own data properties that bypass state wiring.
     try {
       const props = Array.from(getDecoratedStateProps(this));
       for (const key of props) {
-        const desc = Object.getOwnPropertyDescriptor(this, key);
-        // Always re-define as accessor on the instance for consistent behavior
-        const storageSym = Symbol(`__inst_state_${String(key)}`);
-        Object.defineProperty(this, key, {
-          configurable: true,
-          enumerable: true,
-          get: () => {
-            try {
-              if (Object.prototype.hasOwnProperty.call(this as any, storageSym)) {
-                return (this as any)[storageSym];
+        try {
+          const storageSym = Symbol.for(`__inst_state_${String(key)}`);
+          const ownDesc = Object.getOwnPropertyDescriptor(this, key);
+          // Only define if there's not already an accessor on the instance
+          if (!ownDesc || (!ownDesc.get && !ownDesc.set)) {
+            Object.defineProperty(this, key, {
+              configurable: true,
+              enumerable: true,
+              get: () => {
+                try {
+                  if (Object.prototype.hasOwnProperty.call(this as any, storageSym)) {
+                    return (this as any)[storageSym];
+                  }
+                } catch {}
+                try { return (this.state as any)[key]; } catch { return undefined; }
+              },
+              set: (value: any) => {
+                try { (this as any)[storageSym] = value; } catch {}
+                try { if (!this.state || typeof this.state !== 'object') this.state = {}; (this.state as any)[key] = value; } catch {}
+                try { this.updateBindings(key, value); } catch {}
+                try { (this as any).evaluateDirectives?.(); } catch {}
+                try { (this as any).syncBindings?.(); } catch {}
+                try { queueMicrotask?.(() => { try { (this as any).syncBindings?.(); } catch {} }); } catch {}
+                try { requestAnimationFrame?.(() => { try { (this as any).syncBindings?.(); } catch {} }); } catch {}
               }
-            } catch {}
-            try {
-              return (this.state as any)[key];
-            } catch {
-              return undefined;
+            });
+          }
+          // If an own data property existed (even if its value is `undefined`),
+          // migrate it through the accessor so it updates the state bag.
+          try {
+            const hadOwn = Object.prototype.hasOwnProperty.call(this, key);
+            if (hadOwn) {
+              const currentDesc = Object.getOwnPropertyDescriptor(this, key);
+              const currentVal = currentDesc && Object.prototype.hasOwnProperty.call(currentDesc, 'value') ? (currentDesc as any).value : undefined;
+              try { delete (this as any)[key]; } catch {}
+              try { (this as any)[key] = currentVal; } catch {}
             }
-          },
-          set: (value: any) => {
-            try { (this as any)[storageSym] = value; } catch {}
-            try { (this.state as any)[key] = value; } catch {}
-            try { this.updateBindings(key, value); } catch {}
-            try { (this as any).evaluateDirectives?.(); } catch {}
-            try { (this as any).syncBindings?.(); } catch {}
-            // Defer a follow-up sync to handle cases where DOM was just rewritten (e.g., innerHTML ops)
-            try { queueMicrotask?.(() => { try { (this as any).syncBindings?.(); } catch {} }); } catch {}
-            try { requestAnimationFrame?.(() => { try { (this as any).syncBindings?.(); } catch {} }); } catch {}
-          },
-        });
-        // If a value was already set (via field initializer after super), reflect it into state
+          } catch {}
+        } catch {}
+      }
+    } catch {}
+
+    // Define accessors on the component's prototype so that subclass field
+    // initializers (which run after `super()`) will invoke the prototype
+    // setter instead of creating an own data property that bypasses state.
+    try {
+      const props = Array.from(getDecoratedStateProps(this));
+      const proto = Object.getPrototypeOf(this) || (this as any).constructor?.prototype;
+      for (const key of props) {
+        const storageSym = Symbol.for(`__inst_state_${String(key)}`);
+        try {
+          const existing = Object.getOwnPropertyDescriptor(proto, key);
+          if (!existing || !existing.set) {
+            Object.defineProperty(proto, key, {
+              configurable: true,
+              enumerable: true,
+              get: function (this: any) {
+                try {
+                  if (Object.prototype.hasOwnProperty.call(this, storageSym)) {
+                    return this[storageSym];
+                  }
+                } catch {}
+                try {
+                  return this.state ? this.state[key] : undefined;
+                } catch {
+                  return undefined;
+                }
+              },
+              set: function (this: any, value: any) {
+                try { this[storageSym] = value; } catch {}
+                try { if (!this.state || typeof this.state !== 'object') this.state = {}; this.state[key] = value; } catch {}
+                try { if (typeof this.updateBindings === 'function') this.updateBindings(key, value); } catch {}
+                try { if (typeof this.evaluateDirectives === 'function') this.evaluateDirectives(); } catch {}
+                try { if (typeof this.syncBindings === 'function') this.syncBindings(); } catch {}
+                try { queueMicrotask?.(() => { try { if (typeof this.syncBindings === 'function') this.syncBindings(); } catch {} }); } catch {}
+                try { requestAnimationFrame?.(() => { try { if (typeof this.syncBindings === 'function') this.syncBindings(); } catch {} }); } catch {}
+              }
+            });
+          }
+        } catch {}
+
+        // If a value was already set (via field initializer after super), reflect it
+        // through the setter so it propagates into `this.state` and updates bindings.
         try {
           const current = (this as any)[key];
-          (this.state as any)[key] = current;
+          if (current !== undefined) {
+            try { (this as any)[key] = current; } catch {}
+          }
         } catch {}
-        // Silence unused-var for desc
-        void desc;
       }
     } catch {}
 
     // If a decorator provided async assets, wait briefly before initializing template
     // Kick off template init; can be async if decorator provided paths
     void this.ensureTemplate();
+
+    // DEBUG: quick probe to show decorated props and descriptors at end of constructor
+    try {
+      const props = Array.from(getDecoratedStateProps(this));
+      if (props.length) {
+        const probe: any = {};
+        for (const k of props) {
+          probe[k] = {
+            hasOwn: Object.prototype.hasOwnProperty.call(this, k),
+            instanceDesc: Object.getOwnPropertyDescriptor(this, k),
+            protoDesc: Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this), k),
+            stateValue: (this as any).state?.[k],
+          };
+        }
+        try { console.debug('[Component debug] constructor props', probe); } catch (e) {}
+      }
+    } catch (e) {}
+
+    // After constructor finishes (and subclass field initializers have run),
+    // synchronously migrate any own data properties created by class-field initializers into the state-backed accessors.
+    try {
+      const props = Array.from(getDecoratedStateProps(this));
+      for (const key of props) {
+        try {
+          if (Object.prototype.hasOwnProperty.call(this, key)) {
+            const desc = Object.getOwnPropertyDescriptor(this, key);
+            if (desc && Object.prototype.hasOwnProperty.call(desc, 'value')) {
+              const val = (this as any)[key];
+              try { delete (this as any)[key]; } catch (e) { console.error(`[Component migration] Failed to delete own property '${key}':`, e); }
+              // Redefine the accessor
+              const storageSym = Symbol.for(`__inst_state_${String(key)}`);
+              try {
+                Object.defineProperty(this, key, {
+                  configurable: true,
+                  enumerable: true,
+                  get: () => {
+                    try {
+                      if (Object.prototype.hasOwnProperty.call(this as any, storageSym)) {
+                        return (this as any)[storageSym];
+                      }
+                    } catch {}
+                    try { return (this.state as any)[key]; } catch { return undefined; }
+                  },
+                  set: (value: any) => {
+                    try { (this as any)[storageSym] = value; } catch {}
+                    try { if (!this.state || typeof this.state !== 'object') this.state = {}; (this.state as any)[key] = value; } catch {}
+                    try { this.updateBindings(key, value); } catch {}
+                    try { (this as any).evaluateDirectives?.(); } catch {}
+                    try { (this as any).syncBindings?.(); } catch {}
+                    try { queueMicrotask?.(() => { try { (this as any).syncBindings?.(); } catch {} }); } catch {}
+                    try { requestAnimationFrame?.(() => { try { if (typeof this.syncBindings === 'function') this.syncBindings(); } catch {} }); } catch {}
+                  }
+                });
+              } catch (e) { console.error(`[Component migration] Failed to redefine accessor for '${key}':`, e); }
+              // Set the value through the setter
+              try { (this as any)[key] = val; } catch (e) { console.error(`[Component migration] Failed to set value for '${key}' through accessor:`, e); }
+              // Force sync after migration
+              try { if (typeof this.syncBindings === 'function') this.syncBindings(); } catch (e) { console.error(`[Component migration] Failed to sync bindings for '${key}':`, e); }
+            }
+          }
+        } catch (e) { console.error(`[Component migration] Error migrating property '${key}':`, e); }
+      }
+    } catch (e) { console.error('[Component migration] Error in synchronous migration:', e); }
   }
 
   private async ensureTemplate(): Promise<void> {
@@ -80,6 +197,7 @@ export abstract class Component extends HTMLElement {
   }
 
   async connectedCallback(): Promise<void> {
+  console.debug(`[Component] connectedCallback called for`, this.tagName, this.constructor.name);
     // Ensure template is present (synchronous for import-based, async for path-based)
     await this.ensureTemplate();
 
@@ -99,6 +217,85 @@ export abstract class Component extends HTMLElement {
       }
       return;
     }
+
+    // Ensure prototype accessors exist for decorated props. We do this here
+    // (rather than only in the constructor) because TC39 decorator initializers
+    // and class-field initializers may run after `super()`; running now ensures
+    // the decorator has had a chance to register the props on the constructor.
+    try {
+      const props = Array.from(getDecoratedStateProps(this));
+      const proto = Object.getPrototypeOf(this) || (this as any).constructor?.prototype;
+      for (const key of props) {
+        const storageSym = Symbol.for(`__inst_state_${String(key)}`);
+        try {
+          const existing = Object.getOwnPropertyDescriptor(proto, key);
+          if (!existing || !existing.set) {
+            Object.defineProperty(proto, key, {
+              configurable: true,
+              enumerable: true,
+              get: function (this: any) {
+                try {
+                  if (Object.prototype.hasOwnProperty.call(this, storageSym)) {
+                    return this[storageSym];
+                  }
+                } catch {}
+                try {
+                  return this.state ? this.state[key] : undefined;
+                } catch {
+                  return undefined;
+                }
+              },
+              set: function (this: any, value: any) {
+                try { this[storageSym] = value; } catch {}
+                try { if (!this.state || typeof this.state !== 'object') this.state = {}; this.state[key] = value; } catch {}
+                try { if (typeof this.updateBindings === 'function') this.updateBindings(key, value); } catch {}
+                try { if (typeof this.evaluateDirectives === 'function') this.evaluateDirectives(); } catch {}
+                try { if (typeof this.syncBindings === 'function') this.syncBindings(); } catch {}
+                try { queueMicrotask?.(() => { try { if (typeof this.syncBindings === 'function') this.syncBindings(); } catch {} }); } catch {}
+                try { requestAnimationFrame?.(() => { try { if (typeof this.syncBindings === 'function') this.syncBindings(); } catch {} }); } catch {}
+              }
+            });
+          }
+        } catch {}
+      }
+    } catch {}
+
+    // Reconcile any decorated properties that may have been created as own
+    // data properties by subclass field initializers (so they don't bypass
+    // our prototype setters). For each decorated prop, if an own value
+    // exists, delete that own property and reassign it so the setter runs
+    // and writes into `this.state`.
+    try {
+      const props = Array.from(getDecoratedStateProps(this));
+      for (const key of props) {
+        try {
+          if (Object.prototype.hasOwnProperty.call(this, key)) {
+            const desc = Object.getOwnPropertyDescriptor(this, key);
+            if (desc && Object.prototype.hasOwnProperty.call(desc, "value")) {
+              const val = (this as any)[key];
+              console.debug(`[connectedCallback] Reconciling property '${key}':`, {
+                before: {
+                  value: val,
+                  desc,
+                  protoDesc: Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this), key),
+                  stateValue: (this as any).state?.[key],
+                }
+              });
+              try { delete (this as any)[key]; } catch (e) { console.error(`[connectedCallback] Failed to delete own property '${key}':`, e); }
+              try { (this as any)[key] = val; } catch (e) { console.error(`[connectedCallback] Failed to set value for '${key}' through accessor:`, e); }
+              console.debug(`[connectedCallback] After reconciliation for '${key}':`, {
+                after: {
+                  instanceDesc: Object.getOwnPropertyDescriptor(this, key),
+                  protoDesc: Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this), key),
+                  stateValue: (this as any).state?.[key],
+                  instanceValue: (this as any)[key],
+                }
+              });
+            }
+          }
+        } catch (e) { console.error(`[connectedCallback] Error reconciling property '${key}':`, e); }
+      }
+    } catch (e) { console.error('[connectedCallback] Error in reconciliation:', e); }
 
     this.onInit();
     this.syncBindings();

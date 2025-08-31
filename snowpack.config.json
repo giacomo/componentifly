@@ -8,7 +8,7 @@
   },
   "plugins": [
     "@snowpack/plugin-sass",
-    "./plugins/snowpack-template-loader.js",
-    "./plugins/snowpack-scsx-loader.js"
+  "./plugins/snowpack-template-loader.js",
+  "./plugins/snowpack-scsx-loader.js"
   ]
 }

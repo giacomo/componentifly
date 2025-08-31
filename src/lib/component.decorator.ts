@@ -61,6 +61,8 @@ function normalizeTemplateModule(tpl: any): any {
  *   @Component({ template: html, style: styles })
  *   export class List extends ComponentBase { ... }
  */
+import { installPrototypeStateAccessors } from "./state.decorator";
+
 const SELECTOR_KEY = Symbol.for("__component_selector");
 export function getComponentSelector(ctor: any): string | undefined {
   if (!ctor) return undefined;
@@ -70,6 +72,8 @@ export function getComponentSelector(ctor: any): string | undefined {
 export function Component(options: ComponentOptions): ClassDecorator {
   return function (target: any) {
     if (!target || typeof target !== "function") return;
+
+    console.debug('[ComponentDecorator] Applying to:', target.name);
 
     const proto = target.prototype;
     const { template, style, selector, templatePath, stylePath, autoRegister } = (options || {}) as ComponentOptions;
@@ -187,6 +191,9 @@ export function Component(options: ComponentOptions): ClassDecorator {
       try { (target as any).selector = (target as any).selector || selector; } catch {}
       try { (target as any).is = (target as any).is || selector; } catch {}
     }
+
+  // Ensure prototype state accessors are installed for any @StateProperty on this class
+  try { installPrototypeStateAccessors(target); } catch {}
 
     // Optional: auto-define only when explicitly requested
     if (autoRegister && selector && typeof selector === "string") {
