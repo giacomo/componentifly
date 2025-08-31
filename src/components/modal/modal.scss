@@ -1,0 +1,121 @@
+/* ensure the host generates a block-level box so child flex layout works */
+:host {
+	display: block;
+}
+
+:host([open]) .modal__wrapper {
+	display: flex;
+}
+
+:host(:not([open])) .modal__wrapper {
+	display: none;
+}
+
+.modal__wrapper {
+	position: fixed;
+	inset: 0;
+	/* prevent accidental floats from user/other styles that would break flex centering */
+	float: none;
+	/* ensure the wrapper explicitly fills the viewport for accurate centering */
+	width: 100vw;
+	height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 20px; /* give space on small screens so centering works */
+	box-sizing: border-box;
+	background: rgba(0,0,0,0.5);
+	z-index: 1000;
+}
+
+.modal {
+	background: #fff;
+	width: 90%;
+	max-width: 480px;
+	border-radius: 6px;
+	overflow: hidden;
+	box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+	/* Keep modal centered and constrain height; layout as column so only body scrolls */
+	margin: auto;
+	position: relative;
+	max-height: 90vh;
+	display: flex;
+	flex-direction: column;
+}
+
+.modal__header, .modal__footer {
+	padding: 12px 16px;
+	background: #f7f7f7;
+}
+
+/* header layout: title left, close button right */
+.modal__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.modal__title {
+	font-weight: 600;
+	margin: 0;
+	flex: 1 1 auto; /* take available space so close sits to the right */
+	text-align: left;
+}
+
+.modal__close {
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+	background: transparent;
+	border: none;
+	font-size: 1.25rem;
+	line-height: 1;
+	padding: 0;
+}
+
+.modal__close span {
+	display: inline-block;
+	transform: translateY(-1px);
+}
+
+.modal__body {
+	padding: 16px;
+	/* allow only body to scroll when content is large */
+	overflow-y: auto;
+	flex: 1 1 auto;
+}
+
+.modal__footer {
+	flex: 0 0 auto;
+}
+
+.modal__close {
+	cursor: pointer;
+}
+
+.modal__title {
+	font-weight: 600;
+}
+
+.modal__content__buttons {
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+}
+
+.modal__form { margin-top: 12px; display: block; }
+.modal__form label { display:block; margin-bottom:6px; font-size: .95rem; }
+.modal__form input {
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box; /* include padding/border in width to avoid overflow */
+	padding: 8px;
+	border-radius: 4px;
+	border: 1px solid #ccc;
+	display: block;
+}

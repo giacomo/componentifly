@@ -1,7 +1,0 @@
-<div>
-    <label for="name">Type your name:</label>
-    <input type="text" id="name" (value)="name"> 
-    <div class="greeting">
-        Hello {{ name }}! Welcome, to componentifly 🙂!!!
-    </div> 
-</div>

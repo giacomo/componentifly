@@ -1,5 +1,0 @@
-$bla: red;
-
-button {
-    color: $bla;
-}

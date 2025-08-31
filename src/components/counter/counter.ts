@@ -1,32 +1,29 @@
-import { Component } from "../../lib/component";
-import * as html from './counter.template';
-import styles from './counter.style.scsx';
-import { CounterState } from "../../states/counter.state";
+import { Component, ComponentDecorator, Expose, StateProperty } from "../../lib";
+// state interface no longer needed; using @StateProperty
 
+@ComponentDecorator({ templatePath: './counter.html', stylePath: './counter.scss', selector: 'ao-counter' })
 export class Counter extends Component {
-    state: CounterState = {
-        count: 0
-    };
+    @StateProperty count: number = 0;
 
-    get template(): any {
-        return html;
+    // template & styles provided by decorator
+
+    @Expose
+    addCounter(): void {
+        this.count++;
     }
 
-    get styleSheet(): string {
-        return styles;
+    @Expose
+    subtractCounter(): void {
+        this.count--;
     }
 
-    get binding(): Record<string, () => void> {
-        return {
-            addCounter: () => {
-                this.state.count++;
-            },
-            subtractCounter: () => {
-                this.state.count--;
-            },
-            resetCounter: () => {
-                this.state.count = 0;
-            }
-        };
+    @Expose
+    resetCounter(): void {
+        this.count = 0;
+    }
+
+    @Expose
+    isVisible(): boolean {
+        return this.count === 9;
     }
 }

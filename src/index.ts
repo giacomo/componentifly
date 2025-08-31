@@ -3,19 +3,18 @@ import { LogService } from './services/log.service';
 
 
 import '@webcomponents/custom-elements/src/native-shim';
-import { Framework } from './lib/framework';
-
+import { Framework } from './lib';
 import { Counter } from './components/counter/counter';
 import { Button } from './components/button/button';
 import { Simpleform } from './components/simpleform/simpleform';
+import { Modal } from './components/modal/modal';
+import { ModalDemo } from './components/modal-demo/modal-demo';
+import { List } from './components/list/list';
 
 
-// write your code here.
 const app = new Framework();
+app.registerComponents([Button, Counter, Simpleform, Modal, ModalDemo, List]);
 
-app.registerComponent('ao-button', Button);
-app.registerComponent('ao-counter', Counter);
-app.registerComponent('ao-simpleform', Simpleform);
 
 const logger = new LogService('foo');
 

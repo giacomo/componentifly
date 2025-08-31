@@ -1,8 +1,0 @@
-<div class="counter">
-    <span>Actual counter value: {{count}}</span> 
-    <div class="button__group">
-        <ao-button name="+1" (click)="addCounter()"></ao-button>
-        <ao-button name="-1" (click)="subtractCounter()"></ao-button>
-        <ao-button name="Reset" (click)="resetCounter()"></ao-button>
-    </div>
-</div>

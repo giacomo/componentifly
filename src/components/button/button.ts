@@ -1,21 +1,11 @@
-import { Component } from "../../lib/component";
-import * as html from './button.template';
-import styles from './button.style.scsx';
+import { Component, ComponentDecorator } from "../../lib";
 
+@ComponentDecorator({ templatePath: './button.html', stylePath: './button.scss', selector: 'ao-button' })
 export class Button extends Component {
     state = {};
     inputAttributes = ['name'];
 
+    // template & styles provided by decorator
 
-    get template(): any {
-        return html;
-    }
-
-    get styleSheet(): string {
-        return styles;
-    }
-
-    get binding(): Record<string, () => void> {
-        return {};
-    }
+    // No exposed methods needed for this presentational component
 }

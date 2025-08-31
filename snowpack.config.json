@@ -1,13 +1,14 @@
 {
-    "mount": {
-      "src": "/"
-    },
-    "buildOptions": {
-        "out": "dist/"
-    },
-    "plugins": [
-      "@snowpack/plugin-sass",
-      "./plugins/snowpack-template-loader.js",
-      "./plugins/snowpack-scsx-loader.js"
-    ]
-  }
+  "mount": {
+    "src": "/"
+  },
+  "buildOptions": {
+    "out": "dist/",
+    "htmlFragments": true
+  },
+  "plugins": [
+    "@snowpack/plugin-sass",
+  "./plugins/snowpack-template-loader.js",
+  "./plugins/snowpack-scsx-loader.js"
+  ]
+}
