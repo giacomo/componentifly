@@ -352,7 +352,19 @@ export abstract class Component extends HTMLElement {
     const decorated = getDecoratedStateProps(this).has(name);
     if (!known && !decorated) return;
 
-    (this.state as any)[name] = value as any;
+    // If the property is decorated, prefer writing through the actual property
+    // so the decorator's setter can keep the mirrored storage and state in sync.
+    if (decorated) {
+      try {
+        (this as any)[name] = value as any;
+      } catch {
+        // fallback to state bag if direct set fails
+        (this.state as any)[name] = value as any;
+      }
+    } else {
+      (this.state as any)[name] = value as any;
+    }
+
     try {
       this.updateBindings(name, value);
     } catch {}
@@ -670,8 +682,10 @@ export abstract class Component extends HTMLElement {
   }
 
   updateBindings(prop: string, value: unknown = ""): void {
+    // Only update exact matches (data-bind="prop") or nested paths starting with prop.
+    // Using ends-with caused collisions like updating submittedName when prop was name.
     const bindings = Array.from(
-      this.selectAll(`[data-bind$="${prop}"]`)
+      this.selectAll(`[data-bind="${prop}"],[data-bind^="${prop}."]`)
     ) as Element[];
 
     bindings.forEach((node) => {

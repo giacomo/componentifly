@@ -1,53 +1,69 @@
-import { Component, ComponentDecorator, Expose } from "../../lib";
+import {
+  Component,
+  ComponentDecorator,
+  Expose,
+  StateProperty,
+} from "../../lib";
 
-@ComponentDecorator({ templatePath: './modal-demo.html', stylePath: './modal-demo.scss', selector: 'ao-modal-demo' })
+@ComponentDecorator({
+  templatePath: "./modal-demo.html",
+  stylePath: "./modal-demo.scss",
+  selector: "ao-modal-demo",
+})
 export class ModalDemo extends Component {
-    state = { submittedName: '' };
+  @StateProperty submittedName: string = "";
 
-    // template & styles provided by decorator
+  // template & styles provided by decorator
 
-    @Expose openSimple() {
-        this.openTestcase({title: 'Simple', message: 'A simple modal message.'});
-    }
-    @Expose openWithTitle() {
-        this.openTestcase({title: 'Titled Modal', message: 'Modal with a custom title.'});
-    }
-    @Expose openConfirmOnly() {
-        this.openTestcase({title: 'Confirm Only', message: 'Only a confirm button is shown.', footerType: 'confirm-only'});
-    }
-    @Expose openNoFooter() {
-        this.openTestcase({title: 'No Footer', message: 'This modal has no footer.', footerType: 'none'});
-    }
-    @Expose openLargeContent() {
-        this.openTestcase({title: 'Large Content', message: new Array(100).fill('Long content line.').join('\n')});
-    }
-    @Expose openForm() {
-        this.openTestcase({title: 'Form in modal', message: 'Please enter your name', footerType: 'default', showForm: true});
-    }
+  @Expose openSimple() {
+    this.openTestcase({ title: "Simple", message: "A simple modal message." });
+  }
+  @Expose openWithTitle() {
+    this.openTestcase({
+      title: "Titled Modal",
+      message: "Modal with a custom title.",
+    });
+  }
+  @Expose openConfirmOnly() {
+    this.openTestcase({
+      title: "Confirm Only",
+      message: "Only a confirm button is shown.",
+      footerType: "confirm-only",
+    });
+  }
+  @Expose openNoFooter() {
+    this.openTestcase({
+      title: "No Footer",
+      message: "This modal has no footer.",
+      footerType: "none",
+    });
+  }
+  @Expose openLargeContent() {
+    this.openTestcase({
+      title: "Large Content",
+      message: new Array(100).fill("Long content line.").join("\n"),
+    });
+  }
+  @Expose openForm() {
+    this.openTestcase({
+      title: "Form in modal",
+      message: "Please enter your name",
+      footerType: "default",
+      showForm: true,
+    });
+  }
 
-    private openTestcase(data: any): void {
-        const modal = this.getComponent<any>('demoModal');
-        if (!modal) return;
-        if (typeof modal.open === 'function') {
-            modal.open(data);
-        }
-    }
-
-    public onInit(): void {
-        const modal = this.getComponent<any>('demoModal');
-        if (!modal) return;
-    const onConfirm = (e: any) => {
-        const name = e.detail && e.detail.name ? e.detail.name : '';
+  private async openTestcase(data: any): Promise<void> {
+    const modal = this.getComponent<any>("demoModal");
+    if (!modal) return;
+    if (typeof modal.open === "function") {
+      const result = await modal.open(data);
+      if (result && result.action === 'confirm') {
+        const name = result.data && result.data.name ? String(result.data.name) : '';
         this.setState('submittedName', name);
-        // ensure binding rendered
-        try { this.updateBindings('submittedName', name); } catch (err) {}
-        const node = (this as any).shadowRoot ? (this as any).shadowRoot.querySelector('[data-bind="submittedName"]') : null;
-        if (node) node.textContent = name;
-    };
-
-    // prefer direct listener on modal host
-    modal.addEventListener('confirm', onConfirm);
-    // also listen on the demo host to catch composed events that bubble up
-    this.addEventListener('confirm', onConfirm);
+      }
     }
+  }
+
+  public onInit(): void {}
 }

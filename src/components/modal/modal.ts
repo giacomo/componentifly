@@ -9,11 +9,14 @@ export class Modal extends Component {
     @StateProperty footerType: 'default' | 'confirm-only' | 'none' | 'custom' = 'default';
     @StateProperty name: string = '';
     @StateProperty showForm: boolean = false;
+    private __lastAction: 'idle' | 'confirm' | 'cancel' = 'idle';
 
     // template & styles provided by decorator
 
     @Expose
     close(): void {
+        const wasOpen = this.isOpen;
+        const wasConfirm = this.__lastAction === 'confirm';
         this.isOpen = false;
         this.removeAttribute('open');
         // reset footer/ui state
@@ -26,6 +29,15 @@ export class Modal extends Component {
             if (cancelBtn) cancelBtn.style.display = '';
             if (confirmBtn) confirmBtn.style.display = '';
         }
+
+        // If user closed without confirming, emit a cancel event
+        if (wasOpen && !wasConfirm) {
+            try {
+                const evt = new CustomEvent('cancel', { detail: this.data, bubbles: true, composed: true });
+                this.dispatchEvent(evt);
+            } catch {}
+        }
+        this.__lastAction = 'idle';
     }
 
     @Expose
@@ -36,6 +48,7 @@ export class Modal extends Component {
                 this.data = Object.assign({}, this.data, {name: this.name});
             }
 
+            this.__lastAction = 'confirm';
             const event = new CustomEvent('confirm', {detail: this.data, bubbles: true, composed: true});
             this.dispatchEvent(event);
 
@@ -108,8 +121,10 @@ export class Modal extends Component {
         }
     }
 
-    open(data: any = {}): void {
+    async open(data: any = {}): Promise<{ action: 'confirm' | 'cancel'; data: any }> {
         // normalize common fields for simple mustache bindings
+    // ensure template is ready to avoid timing issues where first click appears blank
+    try { await (this as any).ensureTemplate?.(); } catch {}
     this.data = data;
     this.title = data.title || '';
     this.message = data.message || '';
@@ -118,6 +133,13 @@ export class Modal extends Component {
     this.showForm = !!data.showForm;
     this.isOpen = true;
         this.setAttribute('open', '');
+        this.__lastAction = 'idle';
+
+        // force bindings/directives refresh immediately so UI reflects latest values
+    try { this.updateBindings('title', this.title); } catch {}
+    try { this.updateBindings('message', this.message); } catch {}
+    try { this.updateBindings('name', this.name); } catch {}
+    try { (this as any).evaluateDirectives(); } catch {}
 
         // runtime DOM adjustments for footer variants
         const shadow = (this as any).shadowRoot as ShadowRoot | null;
@@ -144,6 +166,20 @@ export class Modal extends Component {
                 form.style.display = this.showForm ? 'block' : 'none';
             }
         }
+
+        // Provide a Promise that resolves on confirm or cancel
+        return new Promise((resolve) => {
+            const onConfirm = (e: Event) => {
+                try { this.removeEventListener('cancel', onCancel); } catch {}
+                resolve({ action: 'confirm', data: (e as CustomEvent).detail });
+            };
+            const onCancel = (e: Event) => {
+                try { this.removeEventListener('confirm', onConfirm); } catch {}
+                resolve({ action: 'cancel', data: (e as CustomEvent).detail });
+            };
+            this.addEventListener('confirm', onConfirm, { once: true });
+            this.addEventListener('cancel', onCancel, { once: true });
+        });
     }
 
 }
