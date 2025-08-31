@@ -1,11 +1,8 @@
-import { Component, ComponentDecorator } from "../../lib";
-import { SimpleformState } from "../../states/simpleform.state";
+import { Component, ComponentDecorator, StateProperty } from "../../lib";
 
 @ComponentDecorator({ templatePath: './simpleform.html', stylePath: './simpleform.scss', selector: 'ao-simpleform' })
 export class Simpleform extends Component {
-    state: SimpleformState = {
-        name: 'Bob',
-    };
+    @StateProperty name: string = 'Bob';
 
     // template & styles provided by decorator
 

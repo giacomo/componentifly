@@ -7,7 +7,7 @@ export class Modal extends Component {
     @StateProperty title: string = '';
     @StateProperty message: string = '';
     @StateProperty footerType: 'default' | 'confirm-only' | 'none' | 'custom' = 'default';
-    @StateProperty name: string = '';
+    @StateProperty formName: string = '';
     @StateProperty showForm: boolean = false;
     private __lastAction: 'idle' | 'confirm' | 'cancel' = 'idle';
 
@@ -44,9 +44,15 @@ export class Modal extends Component {
     confirm(): void {
         try {
             // ensure name is forwarded in data
-            if (this.name) {
-                this.data = Object.assign({}, this.data, {name: this.name});
-            }
+            // pull latest value from the input directly as a last-resort sync
+            try {
+                const shadow = (this as any).shadowRoot as ShadowRoot | null;
+                const input = shadow ? (shadow.querySelector('#modal-input-name') as HTMLInputElement | null) : null;
+                if (input && typeof input.value === 'string') {
+                    this.formName = input.value;
+                }
+            } catch {}
+            this.data = Object.assign({}, this.data, { name: this.formName ?? '' });
 
             this.__lastAction = 'confirm';
             const event = new CustomEvent('confirm', {detail: this.data, bubbles: true, composed: true});
@@ -54,9 +60,9 @@ export class Modal extends Component {
 
         } catch (err) {
             try { console.error('Modal.confirm error', err); } catch (e) {}
-        } finally {
-            this.close();
         }
+        // Close asynchronously to let listeners update UI first
+        try { queueMicrotask?.(() => { try { this.close(); } catch {} }); } catch { try { setTimeout(() => this.close(), 0); } catch {} }
     }
 
     // helper bindings for template conditional rendering (simplified)
@@ -129,7 +135,14 @@ export class Modal extends Component {
     this.title = data.title || '';
     this.message = data.message || '';
     this.footerType = data.footerType || 'default';
-    this.name = data.name || '';
+    // support both data.name and data.formName, but only override when provided
+    try {
+        const hasFormName = Object.prototype.hasOwnProperty.call(data, 'formName');
+        const hasName = Object.prototype.hasOwnProperty.call(data, 'name');
+        if (hasFormName || hasName) {
+            this.formName = (hasFormName ? data.formName : data.name) ?? '';
+        }
+    } catch {}
     this.showForm = !!data.showForm;
     this.isOpen = true;
         this.setAttribute('open', '');
@@ -138,8 +151,11 @@ export class Modal extends Component {
         // force bindings/directives refresh immediately so UI reflects latest values
     try { this.updateBindings('title', this.title); } catch {}
     try { this.updateBindings('message', this.message); } catch {}
-    try { this.updateBindings('name', this.name); } catch {}
+    try { this.updateBindings('formName', this.formName); } catch {}
     try { (this as any).evaluateDirectives(); } catch {}
+    // Extra deferred sync to ensure freshly created shadow DOM binds correctly
+    try { queueMicrotask?.(() => { try { (this as any).syncBindings?.(); } catch {} }); } catch {}
+    try { requestAnimationFrame?.(() => { try { (this as any).syncBindings?.(); } catch {} }); } catch {}
 
         // runtime DOM adjustments for footer variants
         const shadow = (this as any).shadowRoot as ShadowRoot | null;
@@ -165,6 +181,11 @@ export class Modal extends Component {
             if (form) {
                 form.style.display = this.showForm ? 'block' : 'none';
             }
+            // push current formName into the input value immediately
+            try {
+                const input = shadow.querySelector('#modal-input-name') as HTMLInputElement | null;
+                if (input) input.value = this.formName || '';
+            } catch {}
         }
 
         // Provide a Promise that resolves on confirm or cancel

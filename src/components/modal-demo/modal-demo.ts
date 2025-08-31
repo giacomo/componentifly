@@ -58,9 +58,11 @@ export class ModalDemo extends Component {
     if (!modal) return;
     if (typeof modal.open === "function") {
       const result = await modal.open(data);
-      if (result && result.action === 'confirm') {
-        const name = result.data && result.data.name ? String(result.data.name) : '';
-        this.setState('submittedName', name);
+      if (result && result.action === "confirm") {
+        console.log("Modal confirmed with data:", result);
+        const name =
+          result.data && result.data.name ? String(result.data.name) : "";
+        this.setState("submittedName", name);
       }
     }
   }

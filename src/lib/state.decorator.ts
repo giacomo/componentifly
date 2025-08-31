@@ -35,8 +35,10 @@ export function StateProperty(...args: any[]): any {
           if (!this.state || typeof this.state !== "object") this.state = {} as any;
           this.state[propertyKey] = value;
         } catch {}
-        try { if (typeof this.updateBindings === "function") this.updateBindings(propertyKey, value); } catch {}
-        try { if (typeof (this as any).evaluateDirectives === "function") (this as any).evaluateDirectives(); } catch {}
+  try { if (typeof this.updateBindings === "function") this.updateBindings(propertyKey, value); } catch {}
+  try { if (typeof (this as any).evaluateDirectives === "function") (this as any).evaluateDirectives(); } catch {}
+  // As a safety net, run a full sync if available to avoid any off-by-one visual lag
+  try { if (typeof (this as any).syncBindings === "function") (this as any).syncBindings(); } catch {}
       },
     });
     return;
@@ -76,6 +78,7 @@ export function StateProperty(...args: any[]): any {
           } catch {}
           try { if (typeof this.updateBindings === "function") this.updateBindings(key, value); } catch {}
           try { if (typeof (this as any).evaluateDirectives === "function") (this as any).evaluateDirectives(); } catch {}
+          try { if (typeof (this as any).syncBindings === "function") (this as any).syncBindings(); } catch {}
         },
       });
 

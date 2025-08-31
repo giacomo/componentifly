@@ -14,13 +14,47 @@ export abstract class Component extends HTMLElement {
     // Initialize state bag early
     if (!this.state) this.state = {} as any;
 
-    // Seed state with any @StateProperty defaults already set on the instance
+    // Ensure decorated props have live accessors on the instance itself, so
+    // class-field own properties never shadow prototype setters (works across TS transpile modes)
     try {
       const props = Array.from(getDecoratedStateProps(this));
       for (const key of props) {
-        // If the instance has an own property value (assigned by field initializer), reflect it into state
-        const val = (this as any)[key];
-        (this.state as any)[key] = val;
+        const desc = Object.getOwnPropertyDescriptor(this, key);
+        // Always re-define as accessor on the instance for consistent behavior
+        const storageSym = Symbol(`__inst_state_${String(key)}`);
+        Object.defineProperty(this, key, {
+          configurable: true,
+          enumerable: true,
+          get: () => {
+            try {
+              if (Object.prototype.hasOwnProperty.call(this as any, storageSym)) {
+                return (this as any)[storageSym];
+              }
+            } catch {}
+            try {
+              return (this.state as any)[key];
+            } catch {
+              return undefined;
+            }
+          },
+          set: (value: any) => {
+            try { (this as any)[storageSym] = value; } catch {}
+            try { (this.state as any)[key] = value; } catch {}
+            try { this.updateBindings(key, value); } catch {}
+            try { (this as any).evaluateDirectives?.(); } catch {}
+            try { (this as any).syncBindings?.(); } catch {}
+            // Defer a follow-up sync to handle cases where DOM was just rewritten (e.g., innerHTML ops)
+            try { queueMicrotask?.(() => { try { (this as any).syncBindings?.(); } catch {} }); } catch {}
+            try { requestAnimationFrame?.(() => { try { (this as any).syncBindings?.(); } catch {} }); } catch {}
+          },
+        });
+        // If a value was already set (via field initializer after super), reflect it into state
+        try {
+          const current = (this as any)[key];
+          (this.state as any)[key] = current;
+        } catch {}
+        // Silence unused-var for desc
+        void desc;
       }
     } catch {}
 
@@ -71,6 +105,11 @@ export abstract class Component extends HTMLElement {
 
     shadow.innerHTML = shadow.innerHTML.replaceAll(/\(click\)/g, "data-click");
     shadow.innerHTML = shadow.innerHTML.replaceAll(/\(value\)/g, "data-value");
+
+    // After rewriting innerHTML, previously applied text bindings are lost. Re-sync now.
+    try {
+      this.syncBindings();
+    } catch {}
 
     // wire event and value listeners for current DOM (including clones created later)
     try {
@@ -272,19 +311,30 @@ export abstract class Component extends HTMLElement {
       if (el.getAttribute("data-listener-attached") === "true") continue;
       const attrBindProperty = el.getAttribute("data-value");
       if (!attrBindProperty) continue;
-      if (this.state.hasOwnProperty(attrBindProperty)) {
+      try {
+        // Prefer value from state; if absent, read from the component property (e.g., @StateProperty)
+        let current: any;
+        if (Object.prototype.hasOwnProperty.call(this.state, attrBindProperty)) {
+          current = (this.state as any)[attrBindProperty];
+        } else {
+          try { current = (this as any)[attrBindProperty]; } catch { current = undefined; }
+        }
+        // set both the attribute and the live property when possible
+        try { el.setAttribute("value", current != null ? String(current) : ""); } catch {}
         try {
-          el.setAttribute(
-            "value",
-            (this.state as any)[attrBindProperty].toString()
-          );
-        } catch (e) {}
-        el.addEventListener("keyup", (e: Event) => {
-          const target = e.currentTarget as HTMLInputElement;
-          this.setState(attrBindProperty, target.value);
-        });
-        el.setAttribute("data-listener-attached", "true");
-      }
+          const anyEl: any = el as any;
+          if ("value" in anyEl) anyEl.value = current != null ? String(current) : "";
+        } catch {}
+      } catch (e) {}
+      // keep keyup for compatibility, but also listen to input/change for reliability
+      const updateFrom = (ev: Event) => {
+        const target = ev.currentTarget as HTMLInputElement;
+        this.setState(attrBindProperty, (target as any).value);
+      };
+      el.addEventListener("keyup", updateFrom);
+      el.addEventListener("input", updateFrom);
+      el.addEventListener("change", updateFrom);
+      el.setAttribute("data-listener-attached", "true");
     }
   }
 
@@ -346,23 +396,17 @@ export abstract class Component extends HTMLElement {
   }
 
   setState(name: string, value: unknown): void {
-    // Allow setting if it's a known state key or a decorated property
-    const known =
-      this.state && Object.prototype.hasOwnProperty.call(this.state, name);
-    const decorated = getDecoratedStateProps(this).has(name);
-    if (!known && !decorated) return;
+    // Reflect into the state bag so bindings read the latest value
+    (this.state as any)[name] = value as any;
 
-    // If the property is decorated, prefer writing through the actual property
-    // so the decorator's setter can keep the mirrored storage and state in sync.
+    // If decorated, also try writing via the property to trigger any decorator hooks
+    const decorated = getDecoratedStateProps(this).has(name);
     if (decorated) {
       try {
         (this as any)[name] = value as any;
       } catch {
-        // fallback to state bag if direct set fails
-        (this.state as any)[name] = value as any;
+        // ignore; state already updated above
       }
-    } else {
-      (this.state as any)[name] = value as any;
     }
 
     try {
@@ -371,6 +415,10 @@ export abstract class Component extends HTMLElement {
     try {
       this.evaluateDirectives();
     } catch {}
+  // Ensure full refresh for any missed nodes or freshly inserted DOM
+  try { (this as any).syncBindings?.(); } catch {}
+  try { queueMicrotask?.(() => { try { (this as any).syncBindings?.(); } catch {} }); } catch {}
+  try { requestAnimationFrame?.(() => { try { (this as any).syncBindings?.(); } catch {} }); } catch {}
   }
 
   private setDefaultInputs(template: string): string {
@@ -708,6 +756,18 @@ export abstract class Component extends HTMLElement {
       (node as HTMLElement).textContent =
         bindValue !== undefined && bindValue !== null ? String(bindValue) : "";
     });
+
+    // Also propagate to inputs bound with data-value for true two-way syncing
+    try {
+      const valueNodes = Array.from(this.selectAll(`[data-value="${prop}"]`));
+      for (const node of valueNodes) {
+        try { node.setAttribute("value", value != null ? String(value) : ""); } catch {}
+        try {
+          const anyEl: any = node as any;
+          if ("value" in anyEl) anyEl.value = value != null ? String(value) : "";
+        } catch {}
+      }
+    } catch {}
   }
 
   /**
