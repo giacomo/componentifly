@@ -158,6 +158,8 @@ body {
     border: 1px solid $neutral-200;
     overflow: hidden; /* Change from hidden to visible to prevent clipping issues */
     position: static; /* Ensure it doesn't create a containing block */
+    display: flex;
+    flex-direction: column;
     
     /* Completely isolate any modal elements from card transforms */
     &:hover {
@@ -170,6 +172,12 @@ body {
         @media (max-width: 768px) {
             grid-column: 1;
         }
+    }
+    
+    // Ensure code-documentation is always at the bottom
+    ao-code-documentation {
+        margin-top: auto;
+        order: 999; // Ensure it's always last in flex order
     }
 }
 
@@ -202,9 +210,12 @@ body {
 
 .card-content {
     padding: $spacing-xl;
+    flex: 1; // Allow content to grow and push code-documentation to bottom
+    min-height: 120px; // Reduced min-height for better proportion
     
     @media (max-width: 768px) {
         padding: $spacing-lg;
+        min-height: 100px; // Smaller min-height for mobile
     }
 }
 
