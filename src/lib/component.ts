@@ -1,10 +1,11 @@
 import { StateType } from "./state-type";
 import { getDecoratedStateProps } from "./state.decorator";
+import { getDecoratedSlotProps } from "./slot.decorator";
 import { getExposedMethods } from "./expose.decorator";
+import { getDecoratedInputProps } from "./input.decorator";
 
 export abstract class Component extends HTMLElement {
   public state: StateType = {};
-  public inputAttributes = [];
   private __rendered = false;
   private __tmplModule: any | null = null;
   private __styleText: string | null = null;
@@ -40,6 +41,7 @@ export abstract class Component extends HTMLElement {
                 try { (this as any)[storageSym] = value; } catch {}
                 try { if (!this.state || typeof this.state !== 'object') this.state = {}; (this.state as any)[key] = value; } catch {}
                 try { this.updateBindings(key, value); } catch {}
+                try { (this as any).updateAllFunctionBindings?.(); } catch {}
                 try { (this as any).evaluateDirectives?.(); } catch {}
                 try { (this as any).syncBindings?.(); } catch {}
                 try { queueMicrotask?.(() => { try { (this as any).syncBindings?.(); } catch {} }); } catch {}
@@ -162,6 +164,7 @@ export abstract class Component extends HTMLElement {
                     try { (this as any)[storageSym] = value; } catch {}
                     try { if (!this.state || typeof this.state !== 'object') this.state = {}; (this.state as any)[key] = value; } catch {}
                     try { this.updateBindings(key, value); } catch {}
+                    try { (this as any).updateAllFunctionBindings?.(); } catch {}
                     try { (this as any).evaluateDirectives?.(); } catch {}
                     try { (this as any).syncBindings?.(); } catch {}
                     try { queueMicrotask?.(() => { try { (this as any).syncBindings?.(); } catch {} }); } catch {}
@@ -297,16 +300,24 @@ export abstract class Component extends HTMLElement {
       }
     } catch (e) { console.error('[connectedCallback] Error in reconciliation:', e); }
 
+    // Process input properties from HTML attributes
+    try {
+      this.processInputPropertiesFromAttributes();
+    } catch (e) { console.error('[connectedCallback] Error processing input properties:', e); }
+
     this.onInit();
     this.syncBindings();
 
-    shadow.innerHTML = shadow.innerHTML.replaceAll(/\(click\)/g, "data-click");
-    shadow.innerHTML = shadow.innerHTML.replaceAll(/\(value\)/g, "data-value");
+  // Safely rewrite Angular-like attributes (click)/(value) to data-* without nuking existing nodes
+  try { this.rewriteTemplateEventAttributes(); } catch {}
 
     // After rewriting innerHTML, previously applied text bindings are lost. Re-sync now.
     try {
       this.syncBindings();
     } catch {}
+
+  // Fill any residual single-mustache text nodes that escaped preprocessing
+  try { this.fillResidualMustachesTextNodes(); } catch {}
 
     // wire event and value listeners for current DOM (including clones created later)
     try {
@@ -412,6 +423,24 @@ export abstract class Component extends HTMLElement {
     try {
       this.evaluateDirectives();
     } catch (e) {}
+  }
+
+  // Traverse shadow DOM and rename attributes like (click) or (value) to data-click/data-value
+  private rewriteTemplateEventAttributes(): void {
+    const root = this.shadowRoot;
+    if (!root) return;
+    const all = root.querySelectorAll('*');
+    for (const el of Array.from(all)) {
+      const attrs = Array.from(el.attributes);
+      for (const a of attrs) {
+        const m = a.name.match(/^\(([^)]+)\)$/);
+        if (!m) continue;
+        const name = m[1];
+        const val = a.value ?? '';
+        try { el.setAttribute(`data-${name}`, val); } catch {}
+        try { el.removeAttribute(a.name); } catch {}
+      }
+    }
   }
 
   // attach click/value listeners for elements; idempotent (marks nodes with data-listener-attached)
@@ -557,10 +586,28 @@ export abstract class Component extends HTMLElement {
         }
       } catch (e) {}
     }
+
+    // Handle function bindings
+    const functionBindSelectors = this.selectAll("[data-bind-function]");
+    for (const selector of Array.from(functionBindSelectors)) {
+      const attr = selector.attributes.getNamedItem("data-bind-function");
+      if (!attr) continue;
+      const fnName = attr.value;
+      this.updateFunctionBinding(fnName, selector as HTMLElement);
+    }
+
     // re-evaluate structural directives (e.g. *if) after bindings update
     try {
       this.evaluateDirectives();
     } catch (e) {}
+
+    // Update any attribute-based mustache templates
+    try {
+      this.updateAttributeBindings();
+    } catch {}
+
+  // Final pass: evaluate any residual single-mustache text nodes
+  try { this.fillResidualMustachesTextNodes(); } catch {}
   }
 
   private initTemplate(): void {
@@ -568,6 +615,10 @@ export abstract class Component extends HTMLElement {
     this.attachShadow({ mode: "open" });
     if (this.shadowRoot)
       this.shadowRoot.appendChild(renderer.template.content.cloneNode(true));
+    
+    // Clean up slot elements from the host after processing
+    this.cleanupSlotElements();
+    
     this.__rendered = true;
     try {
       this.syncBindings();
@@ -609,6 +660,12 @@ export abstract class Component extends HTMLElement {
     try {
       this.updateBindings(name, value);
     } catch {}
+    
+    // Update all function bindings since they might depend on this state change
+    try {
+      this.updateAllFunctionBindings();
+    } catch {}
+
     try {
       this.evaluateDirectives();
     } catch {}
@@ -623,13 +680,44 @@ export abstract class Component extends HTMLElement {
 
     const raw = [...template.matchAll(regex)];
     const hostText = this.textContent ? this.textContent.trim() : "";
+    
+    // Get slot properties from the class decorator
+    const slotProps = getDecoratedSlotProps(this);
+    const slotPropsMap = new Map<string, string>();
+    
+    for (const slotProp of slotProps) {
+      slotPropsMap.set(slotProp.name, slotProp.defaultValue || "");
+    }
+    
+    // Extract slot content from the host element
+    const slotContentMap = this.extractSlotContent();
+    
     const matches = raw.map((m) => {
       const inputName = (m[1] || "").trim();
-      // prefer host text for the common `name` input so users can write <ao-button>Label</ao-button>
-      const variable =
-        inputName === "name" && hostText.length > 0
-          ? hostText
-          : this.getAttribute(inputName) ?? "";
+      
+      let variable = "";
+      
+      // 1. First priority: Check for slot content (HTML slots)
+      if (slotContentMap.has(inputName)) {
+        variable = slotContentMap.get(inputName) || "";
+      }
+      // 2. Second priority: Check if user provided attribute
+      else if (this.getAttribute(inputName) !== null) {
+        variable = this.getAttribute(inputName) || "";
+      }
+      // 3. Third priority: For 'name' slot, use host text if available
+      else if (inputName === "name" && hostText.length > 0) {
+        variable = hostText;
+      }
+      // 4. Fourth priority: Use default value from @SlotProperty decorator
+      else if (slotPropsMap.has(inputName)) {
+        variable = slotPropsMap.get(inputName) || "";
+      }
+      // 5. Fallback: empty string (backward compatibility)
+      else {
+        variable = "";
+      }
+      
       return {
         match: m[0],
         variable,
@@ -643,6 +731,41 @@ export abstract class Component extends HTMLElement {
     return template;
   }
 
+  private extractSlotContent(): Map<string, string> {
+    const slotContentMap = new Map<string, string>();
+    
+    // Find all slot elements in the host element
+    const slots = this.querySelectorAll('slot[name]');
+    
+    for (const slotElement of Array.from(slots)) {
+      const slotName = slotElement.getAttribute('name');
+      if (slotName) {
+        // Get the innerHTML of the slot element
+        const content = slotElement.innerHTML.trim();
+        slotContentMap.set(slotName, content);
+      }
+    }
+    
+    // Also check for unnamed slot content (fallback to textContent for 'name' slot)
+    const unnamedSlots = this.querySelectorAll('slot:not([name])');
+    if (unnamedSlots.length > 0) {
+      const content = unnamedSlots[0].innerHTML.trim();
+      if (content) {
+        slotContentMap.set('name', content); // Default to 'name' slot
+      }
+    }
+    
+    return slotContentMap;
+  }
+
+  private cleanupSlotElements(): void {
+    // Remove all slot elements from the host after they've been processed
+    const slots = this.querySelectorAll('slot');
+    for (const slot of Array.from(slots)) {
+      slot.remove();
+    }
+  }
+
   private getPreRenderedTemplate(): {
     template: HTMLTemplateElement;
     matches: { match: string; variable: string }[];
@@ -654,28 +777,219 @@ export abstract class Component extends HTMLElement {
 
     renderTemplate = this.setDefaultInputs(renderTemplate);
 
-    // extract simple properties
-    const regex = /\{\{\s?([a-zA-Z0-9\-\_\.]+)\s?\}\}/g;
-    const raw = [...renderTemplate.matchAll(regex)];
-    const matches: { match: string; variable: string }[] = raw.map((m) => ({
-      match: m[0],
-      variable: (m[1] || "").trim(),
-    }));
-
-    for (const match of matches) {
-      renderTemplate = renderTemplate.replaceAll(
-        match.match,
-        `<span data-bind="${match.variable}"></span>`
-      );
-    }
-
+    // Assign HTML first, then walk DOM to safely transform text-node mustaches
+    // and record attribute templates without corrupting markup.
     template.innerHTML = renderTemplate;
+    try {
+      this.preprocessTemplateBindings(template);
+    } catch {}
 
     try {
       /* pre-render debug removed */
     } catch (e) {}
 
-    return { template, matches };
+    // matches are not used downstream anymore; return an empty list for compatibility
+    return { template, matches: [] };
+  }
+
+  // Walk the template DOM to:
+  // - Convert text-node {{ expr }} into span binding nodes
+  // - Detect attribute values with {{ expr }} and store their templates on data-attrs
+  private preprocessTemplateBindings(template: HTMLTemplateElement): void {
+    const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+    const mustache = /\{\{\s*([^}]+)\s*\}\}/g;
+
+    const processTextNode = (textNode: Text) => {
+      const text = textNode.textContent ?? "";
+      if (!mustache.test(text)) return;
+      mustache.lastIndex = 0; // reset
+
+      // If the entire text node is a single mustache, prefer binding on the parent element itself.
+      const singleRe = /^\s*\{\{\s*([^}]+)\s*\}\}\s*$/;
+      const single = text.match(singleRe);
+      const parentEl = textNode.parentElement as HTMLElement | null;
+      if (single && parentEl) {
+        const exprRaw = (single[1] || '').trim();
+        if (exprRaw.endsWith('()')) {
+          const fnName = exprRaw.replace(/\(\)$/, '');
+          parentEl.setAttribute('data-bind-function', fnName);
+        } else {
+          parentEl.setAttribute('data-bind', exprRaw);
+        }
+        // Clear existing content; parent will be populated by syncBindings/updateAllFunctionBindings
+        parentEl.textContent = '';
+        textNode.remove();
+        return;
+      }
+
+      const frag = document.createDocumentFragment();
+      let lastIndex = 0;
+      let m: RegExpExecArray | null;
+      while ((m = mustache.exec(text)) !== null) {
+        const before = text.slice(lastIndex, m.index);
+        if (before) frag.appendChild(document.createTextNode(before));
+        const exprRaw = (m[1] || "").trim();
+        if (exprRaw.endsWith("()")) {
+          const fnName = exprRaw.replace(/\(\)$/, "");
+          const span = document.createElement("span");
+          span.setAttribute("data-bind-function", fnName);
+          frag.appendChild(span);
+        } else {
+          const span = document.createElement("span");
+          span.setAttribute("data-bind", exprRaw);
+          frag.appendChild(span);
+        }
+        lastIndex = (m.index ?? 0) + (m[0]?.length ?? 0);
+      }
+      const after = text.slice(lastIndex);
+      if (after) frag.appendChild(document.createTextNode(after));
+      textNode.replaceWith(frag);
+    };
+
+    const processElementAttributes = (el: Element) => {
+      // Build list first; we'll modify during iteration
+      const attrs = Array.from(el.attributes);
+      const templatedKeys: string[] = [];
+      for (const a of attrs) {
+        const name = a.name;
+        // Skip event-like attributes (click) and similar Angular-style inputs; those are handled elsewhere
+        if (name.startsWith("(") && name.endsWith(")")) continue;
+        const val = a.value ?? "";
+        if (!mustache.test(val)) { mustache.lastIndex = 0; continue; }
+        mustache.lastIndex = 0;
+        // Store original template string and set initial static value (mustaches removed)
+        const staticVal = val.replace(mustache, "").trim();
+        try { el.setAttribute(name, staticVal); } catch {}
+        try { el.setAttribute(`data-attr-template-${name}`, val); } catch {}
+        templatedKeys.push(name);
+      }
+      if (templatedKeys.length) {
+        try { el.setAttribute("data-attr-template-keys", templatedKeys.join(",")); } catch {}
+      }
+    };
+
+    let node: Node | null = walker.currentNode;
+    while (node) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        processTextNode(node as Text);
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        processElementAttributes(node as Element);
+      }
+      node = walker.nextNode();
+    }
+  }
+
+  // Replace {{ expr }} inside recorded attribute templates using current state/props/functions
+  private updateAttributeBindings(): void {
+    const root: ParentNode | null = this.shadowRoot ?? this;
+    if (!root) return;
+    const els = root.querySelectorAll('[data-attr-template-keys]');
+    for (const el of Array.from(els)) {
+      const keysAttr = el.getAttribute('data-attr-template-keys') || '';
+      if (!keysAttr) continue;
+      const keys = keysAttr.split(',').map(k => k.trim()).filter(Boolean);
+      for (const key of keys) {
+        const tmpl = el.getAttribute(`data-attr-template-${key}`);
+        if (!tmpl) continue;
+        const evaluated = this.evaluateAttributeTemplate(tmpl);
+        try { el.setAttribute(key, evaluated); } catch {}
+        // Optionally reflect to the live property for common attributes like value
+        try {
+          const anyEl: any = el as any;
+          if (key === 'value' && 'value' in anyEl) anyEl.value = evaluated;
+        } catch {}
+      }
+    }
+  }
+
+  private evaluateAttributeTemplate(tmpl: string): string {
+    const re = /\{\{\s*([^}]+)\s*\}\}/g;
+    return tmpl.replace(re, (_match, g1) => {
+      const expr = String(g1 || '').trim();
+      try {
+        // simple negation support (!var)
+        if (expr.startsWith('!')) {
+          const inner = expr.slice(1).trim();
+          const v = this.lookupExpression(inner);
+          return (!v ? 'true' : '');
+        }
+        // function call
+        if (/^[_$a-zA-Z][_$a-zA-Z0-9]*\(\)$/.test(expr)) {
+          const fnName = expr.replace(/\(\)$/, '');
+          if (getExposedMethods(this).has(fnName) && typeof (this as any)[fnName] === 'function') {
+            const out = (this as any)[fnName].call(this);
+            return out != null ? String(out) : '';
+          }
+          return '';
+        }
+        // property/path lookup
+        const v = this.lookupExpression(expr);
+        return v != null ? String(v) : '';
+      } catch {
+        return '';
+      }
+    }).trim();
+  }
+
+  private lookupExpression(expr: string): any {
+    const parts = expr.split('.');
+    // Try state first
+    let cur: any = this.state;
+    for (const p of parts) {
+      if (cur == null) break;
+      cur = cur[p];
+    }
+    if (cur !== undefined) return cur;
+    // Fallback to component instance path
+    cur = this as any;
+    for (const p of parts) {
+      if (cur == null) break;
+      cur = cur[p];
+    }
+    return cur;
+  }
+
+  // Fallback: evaluate leftover text nodes containing a single mustache and write the result
+  private fillResidualMustachesTextNodes(): void {
+    const root: ParentNode | null = this.shadowRoot ?? this;
+    if (!root) return;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const singleRe = /^\s*\{\{\s*([^}]+)\s*\}\}\s*$/;
+    let node = walker.currentNode as Text | null;
+    while (node) {
+      try {
+        const txt = node.textContent ?? '';
+        const m = txt.match(singleRe);
+        const parent = node.parentElement as HTMLElement | null;
+        if (!m || !parent) {
+          node = walker.nextNode() as Text | null;
+          continue;
+        }
+        if (parent.hasAttribute('data-bind') || parent.hasAttribute('data-bind-function')) {
+          node = walker.nextNode() as Text | null;
+          continue;
+        }
+        const exprRaw = (m[1] || '').trim();
+        // Convert to real binding on the parent so future updates work automatically
+        if (exprRaw.endsWith('()')) {
+          const fnName = exprRaw.replace(/\(\)$/, '');
+          parent.setAttribute('data-bind-function', fnName);
+          parent.textContent = '';
+          // immediate update
+          this.updateFunctionBinding(fnName, parent);
+        } else {
+          parent.setAttribute('data-bind', exprRaw);
+          parent.textContent = '';
+          // try to get initial value from state/props
+          let v: any;
+          try { v = this.lookupExpression(exprRaw); } catch {}
+          if (v !== undefined) parent.textContent = v != null ? String(v) : '';
+        }
+        // remove the original text node
+        try { node.remove(); } catch {}
+      } catch {}
+      node = walker.nextNode() as Text | null;
+    }
   }
 
   // Re-evaluate structural directives stored on elements (e.g. data-if-expression)
@@ -869,14 +1183,35 @@ export abstract class Component extends HTMLElement {
                 }
               }
 
-              // text nodes: replace mustache bindings like {{ item }} or {{ item.prop }}
+              // text nodes: replace mustache bindings like {{ item }} or {{ item.prop }} or {{ functionName() }}
               for (const child of Array.from(node.childNodes)) {
                 if (child.nodeType === Node.TEXT_NODE) {
                   const text = child.textContent || "";
-                  const regex = /\{\{\s*([a-zA-Z0-9_\.\$]+)\s*\}\}/g;
+                  const regex = /\{\{\s*([a-zA-Z0-9_\.\$]+(?:\(\))?)\s*\}\}/g;
                   const replaced = text.replace(
                     regex,
                     (match: string, varName: string) => {
+                      // Handle function calls
+                      if (varName.endsWith("()")) {
+                        const fnName = varName.replace(/\(\)$/, "");
+                        if (
+                          getExposedMethods(this).has(fnName) &&
+                          typeof (this as any)[fnName] === "function"
+                        ) {
+                          try {
+                            const result = (this as any)[fnName].call(this);
+                            return result !== undefined && result !== null ? String(result) : "";
+                          } catch (e) {
+                            console.warn(`[evaluateDirectives] Error calling function '${fnName}':`, e);
+                            return "";
+                          }
+                        } else {
+                          console.warn(`[evaluateDirectives] Function '${fnName}' is not exposed or does not exist`);
+                          return "";
+                        }
+                      }
+                      
+                      // Handle regular variable bindings
                       if (varName === itemName)
                         return String(item != null ? item : "");
                       if (varName.startsWith(itemName + ".")) {
@@ -924,6 +1259,9 @@ export abstract class Component extends HTMLElement {
     } catch (e) {
       console.error("wireInteractions error", e);
     }
+
+  // After structural changes, refresh attribute bindings as well
+  try { this.updateAttributeBindings(); } catch {}
   }
 
   updateBindings(prop: string, value: unknown = ""): void {
@@ -965,6 +1303,44 @@ export abstract class Component extends HTMLElement {
         } catch {}
       }
     } catch {}
+  }
+
+  private updateFunctionBinding(fnName: string, element: HTMLElement): void {
+    try {
+      // Only allow explicitly exposed methods
+      if (
+        getExposedMethods(this).has(fnName) &&
+        typeof (this as any)[fnName] === "function"
+      ) {
+        try {
+          const result = (this as any)[fnName].call(this);
+          element.textContent = result !== undefined && result !== null ? String(result) : "";
+        } catch (e) {
+          element.textContent = "";
+          console.warn(`[updateFunctionBinding] Error calling function '${fnName}':`, e);
+        }
+      } else {
+        element.textContent = "";
+        console.warn(`[updateFunctionBinding] Function '${fnName}' is not exposed or does not exist`);
+      }
+    } catch (e) {
+      element.textContent = "";
+      console.error(`[updateFunctionBinding] Error in updateFunctionBinding for '${fnName}':`, e);
+    }
+  }
+
+  private updateAllFunctionBindings(): void {
+    try {
+      const functionBindSelectors = this.selectAll("[data-bind-function]");
+      for (const selector of Array.from(functionBindSelectors)) {
+        const attr = selector.attributes.getNamedItem("data-bind-function");
+        if (!attr) continue;
+        const fnName = attr.value;
+        this.updateFunctionBinding(fnName, selector as HTMLElement);
+      }
+    } catch (e) {
+      console.error("[updateAllFunctionBindings] Error updating function bindings:", e);
+    }
   }
 
   /**
@@ -1019,5 +1395,109 @@ export abstract class Component extends HTMLElement {
     return this.shadowRoot
       ? this.shadowRoot.querySelectorAll(selector)
       : this.querySelectorAll(selector);
+  }
+
+  private processInputPropertiesFromAttributes(): void {
+    try {
+      const inputProps = getDecoratedInputProps(this);
+      console.log('[processInputPropertiesFromAttributes] Processing input props for:', this.constructor.name, 'Properties:', Array.from(inputProps.keys()));
+      
+      if (inputProps.size === 0) {
+        console.log('[processInputPropertiesFromAttributes] No input properties found');
+        return;
+      }
+      
+      // Store original attributes before template processing
+      const originalAttributes = new Map<string, string>();
+      for (const [propertyKey, config] of inputProps.entries()) {
+        const attributeName = config.attributeName || propertyKey.toLowerCase();
+        console.log(`[processInputPropertiesFromAttributes] Looking for property '${propertyKey}' with attribute name '${attributeName}'`);
+        
+        let found = false;
+        let foundValue = '';
+        let foundAttrName = '';
+        
+        // Try multiple attribute name formats:
+        // 1. [propertyKey] (camelCase in brackets)
+        // 2. [attributeName] (lowercase in brackets)  
+        // 3. propertyKey (camelCase without brackets)
+        // 4. attributeName (lowercase without brackets)
+        
+        const attrsToTry = [
+          `[${propertyKey}]`,
+          `[${attributeName}]`,
+          propertyKey,
+          attributeName
+        ];
+        
+        for (const attrName of attrsToTry) {
+          const attrValue = this.getAttribute(attrName);
+          if (attrValue !== null) {
+            console.log(`[processInputPropertiesFromAttributes] Found attribute '${attrName}' with value:`, attrValue.substring(0, 100) + '...');
+            foundValue = attrValue;
+            foundAttrName = attrName;
+            found = true;
+            break;
+          }
+        }
+        
+        if (found) {
+          // Remove quotes if present and store the value
+          const cleanValue = foundValue.replace(/^['"]|['"]$/g, '');
+          
+          // Store using both the property key and the attribute name as keys
+          // so the getter can find it regardless of which it looks for
+          originalAttributes.set(propertyKey, cleanValue);
+          originalAttributes.set(attributeName, cleanValue);
+          
+          console.log('[processInputPropertiesFromAttributes] Cleaned and stored value:', cleanValue.substring(0, 100) + '...');
+          
+          // Remove the bracket attribute since we've processed it
+          if (foundAttrName.startsWith('[') && foundAttrName.endsWith(']')) {
+            this.removeAttribute(foundAttrName);
+          }
+        } else {
+          console.log(`[processInputPropertiesFromAttributes] No attribute found for property '${propertyKey}'`);
+        }
+      }
+      
+      // Store original attributes on the component for later retrieval by property getters
+      (this as any).__originalAttributes = originalAttributes;
+      
+      // Mark that we're initializing to prevent default values from overwriting
+      (this as any).__initializingInputProps = true;
+      
+      // Initialize stored values with original attribute values
+      for (const [propertyKey] of inputProps.entries()) {
+        try {
+          const originalValue = originalAttributes.get(propertyKey);
+          if (originalValue !== undefined) {
+            // Directly set the property to store the original value
+            // This will trigger the setter but should not be blocked since it's a real value
+            (this as any)[propertyKey] = originalValue;
+          }
+          
+          // Manually trigger binding updates for input properties
+          const currentValue = (this as any)[propertyKey];
+          this.updateBindings(propertyKey, currentValue);
+        } catch (e) {
+          // Silent error handling
+        }
+      }
+      
+      // Clear the initialization flag
+      (this as any).__initializingInputProps = false;
+      
+      // Also call the sync method if it exists
+      try {
+        if (typeof (this as any).syncInputPropertiesFromAttributes === "function") {
+          (this as any).syncInputPropertiesFromAttributes();
+        }
+      } catch (e) {
+        // Silent error handling
+      }
+    } catch (e) {
+      console.error('[processInputPropertiesFromAttributes] Error:', e);
+    }
   }
 }

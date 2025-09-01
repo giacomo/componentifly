@@ -1,5 +1,72 @@
-$bla: red;
+// Import variables for consistent styling
+@import '../../assets/scss/partials/variables';
 
-button {
-    color: $bla;
+.counter {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+  align-items: center;
+  text-align: center;
+  
+  span {
+    font-size: $font-size-lg;
+    font-weight: 500;
+    color: $text-primary;
+    
+    &:last-of-type {
+      color: $success;
+      font-weight: 600;
+      animation: celebration 0.5s ease-in-out;
+    }
+  }
+}
+
+.button__group {
+  display: flex;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+  justify-content: center;
+  
+  ao-button {
+    min-width: 60px;
+    
+    &:nth-child(1) button {
+      background: linear-gradient(135deg, $success, darken($success, 10%));
+      
+      &:hover {
+        background: linear-gradient(135deg, lighten($success, 5%), $success);
+      }
+    }
+    
+    &:nth-child(2) button {
+      background: linear-gradient(135deg, $error, darken($error, 10%));
+      
+      &:hover {
+        background: linear-gradient(135deg, lighten($error, 5%), $error);
+      }
+    }
+    
+    &:nth-child(3) button {
+      background: linear-gradient(135deg, $warning, darken($warning, 10%));
+      
+      &:hover {
+        background: linear-gradient(135deg, lighten($warning, 5%), $warning);
+      }
+    }
+  }
+}
+
+@keyframes celebration {
+  0% { 
+    transform: scale(1); 
+    opacity: 0;
+  }
+  50% { 
+    transform: scale(1.1); 
+    opacity: 1;
+  }
+  100% { 
+    transform: scale(1); 
+    opacity: 1;
+  }
 }

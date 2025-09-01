@@ -1,15 +1,197 @@
-li {
+// Import variables for consistent styling
+@import '../../assets/scss/partials/variables';
+
+.list-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  width: 100%;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+.list-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.list-section {
+  background: $bg-secondary;
+  border-radius: $radius-lg;
+  border: 1px solid $neutral-200;
+  padding: 1.5rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-shadow: $shadow-sm;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    box-shadow: $shadow-md;
+    border-color: $primary-light;
+  }
+}
+
+.list-title {
+  color: $text-primary;
+  font-size: $font-size-lg;
+  font-weight: 600;
+  margin: 0 0 1.5rem 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid $neutral-200;
+  text-align: center;
+}
+
+.list-items {
   list-style: none;
-  padding: 20px;
   margin: 0;
-  background-color: #cacaca;
-  border: 1px solid #b3b3b3;
-  text-align: left;
+  padding: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  max-height: 300px;
+  overflow-y: auto;
+  
+  // Custom scrollbar styling
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: $neutral-100;
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: $neutral-300;
+    border-radius: 3px;
+    
+    &:hover {
+      background: $neutral-400;
+    }
+  }
+}
+
+.list-item {
+  background: linear-gradient(135deg, $neutral-50 0%, $bg-secondary 100%);
+  border: 1px solid $neutral-200;
+  border-radius: $radius-md;
+  padding: 1rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  transition: all 0.2s ease;
+  position: relative;
   
   &:hover {
-    background-color: #b3b3b3;
+    background: linear-gradient(135deg, $neutral-100 0%, $neutral-50 100%);
+    border-color: $primary-light;
+    box-shadow: $shadow-md;
   }
+  
+  &:active {
+    box-shadow: $shadow-sm;
+  }
+}
+
+.item-content {
+  color: $text-primary;
+  font-weight: 500;
+  font-size: $font-size-sm;
+  flex: 1;
+  margin-right: 1rem;
+}
+
+// Component-specific button overrides
+ao-button.remove-btn {
+  button {
+    background: linear-gradient(135deg, $error, darken($error, 10%));
+    color: white;
+    border: none;
+    border-radius: $radius-sm;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 0;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    flex-shrink: 0;
+    min-height: unset;
+    
+    &:hover {
+      background: linear-gradient(135deg, darken($error, 5%), darken($error, 15%));
+      transform: scale(1.05);
+      box-shadow: 0 2px 4px 0 rgba($error, 0.3);
+    }
+    
+    &:active {
+      transform: scale(0.95);
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+    
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba($error, 0.3);
+    }
+  }
+}
+
+ao-button.add-btn {
+  width: 100%;
+  
+  button {
+    background: linear-gradient(135deg, $primary-color, $primary-dark);
+    color: white;
+    border: none;
+    border-radius: $radius-md;
+    padding: 0.625rem 1rem;
+    font-size: $font-size-sm;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    min-height: 36px;
+    
+    &:hover {
+      background: linear-gradient(135deg, lighten($primary-color, 5%), $primary-color);
+      transform: translateY(-1px);
+      box-shadow: 0 3px 8px 0 rgba($primary-color, 0.3);
+    }
+    
+    &:active {
+      transform: translateY(0);
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+    
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba($primary-color, 0.3);
+    }
+  }
+}
+
+// Empty state styling
+.list-items:empty::after {
+  content: "No items yet. Add some items to get started!";
+  color: $text-muted;
+  font-style: italic;
+  text-align: center;
+  padding: 2rem;
+  display: block;
 }

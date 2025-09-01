@@ -62,6 +62,7 @@ function normalizeTemplateModule(tpl: any): any {
  *   export class List extends ComponentBase { ... }
  */
 import { installPrototypeStateAccessors } from "./state.decorator";
+import { installInputPropertyHandlers } from "./input.decorator";
 
 const SELECTOR_KEY = Symbol.for("__component_selector");
 export function getComponentSelector(ctor: any): string | undefined {
@@ -194,6 +195,9 @@ export function Component(options: ComponentOptions): ClassDecorator {
 
   // Ensure prototype state accessors are installed for any @StateProperty on this class
   try { installPrototypeStateAccessors(target); } catch {}
+
+  // Ensure input property handlers are installed for any @InputProperty on this class
+  try { installInputPropertyHandlers(target); } catch {}
 
     // Optional: auto-define only when explicitly requested
     if (autoRegister && selector && typeof selector === "string") {

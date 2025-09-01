@@ -57,11 +57,16 @@ export class ModalDemo extends Component {
 
   private async openTestcase(data: any): Promise<void> {
     const modal = this.getComponent<any>("demoModal");
+    // Check if modal is open
+    if (modal && !modal.isOpen) {
+      // add styling to modal
+      modal.style.display = "block";
+    }
+
     if (!modal) return;
     if (typeof modal.open === "function") {
       const result = await modal.open(data);
       if (result && result.action === "confirm") {
-        console.log("Modal confirmed with data:", result);
         const name =
           result.data && result.data.name ? String(result.data.name) : "";
         
@@ -69,6 +74,8 @@ export class ModalDemo extends Component {
         if (!this.state || typeof this.state !== 'object') this.state = {};
         this.submittedName = name;
       }
+
+      modal.style.display = "none";
     }
   }
 

@@ -1,0 +1,33 @@
+<div class="code-documentation">
+    <div class="code-tabs">
+        <button class="code-tab active" *if="isHtml()" (click)="showHtml()">
+            <span class="tab-icon">📄</span>
+            Template
+        </button>
+        <button class="code-tab" *if="isNotHtml()" (click)="showHtml()">
+            <span class="tab-icon">📄</span>
+            Template
+        </button>
+        <button class="code-tab active" *if="isTs()" (click)="showTs()">
+            <span class="tab-icon">⚡</span>
+            TypeScript
+        </button>
+        <button class="code-tab" *if="isNotTs()" (click)="showTs()">
+            <span class="tab-icon">⚡</span>
+            TypeScript
+        </button>
+        <button class="copy-btn {{ getCopyButtonClass() }}" (click)="copyToClipboard()">
+            <span class="copy-icon" *if="!copySuccess">📋</span>
+            <span class="copy-icon" *if="copySuccess">✅</span>
+            {{ getCopyButtonText() }}
+        </button>
+    </div>
+    <div class="code-content">
+        <div class="code-block active" *if="isHtml()" data-language="HTML">
+            <pre><code class="language-html">{{ getFormattedHtmlCode() }}</code></pre>
+        </div>
+        <div class="code-block active" *if="isTs()" data-language="TypeScript">
+            <pre><code class="language-typescript">{{ getFormattedTsCode() }}</code></pre>
+        </div>
+    </div>
+</div>

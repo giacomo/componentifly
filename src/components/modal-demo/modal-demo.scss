@@ -3,3 +3,7 @@
 
 /* ensure modal body can scroll for large content */
 .modal__body { max-height: 60vh; overflow: auto; }
+
+ao-modal {
+  display: none;
+}

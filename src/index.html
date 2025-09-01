@@ -4,31 +4,108 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Componentifly - Modern Component Library</title>
     <link rel="stylesheet" href="assets/scss/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="index.js" type="module"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="jumbtron">
-            <span class="title">Welcome to componentifly!</span>
-        </div>
+    <div class="app-container">
+        <header class="hero-section">
+            <div class="hero-content">
+                <h1 class="hero-title">Welcome to Componentifly</h1>
+                <p class="hero-subtitle">A modern, lightweight component library built for the future</p>
+                <div class="hero-badge">
+                    <span class="badge-text">✨ Interactive Components</span>
+                </div>
+            </div>
+            <div class="hero-background"></div>
+        </header>
 
-        <div class="runner mt-5">
-            <ao-counter></ao-counter>
-        </div>
+        <main class="main-content">
+            <div class="components-grid">
+                <section class="component-card">
+                    <div class="card-header">
+                        <h3 class="card-title">Counter Component</h3>
+                        <span class="component-badge">Interactive</span>
+                    </div>
+                    <div class="card-content">
+                        <ao-counter></ao-counter>
+                    </div>
+                    <ao-code-documentation 
+                        [htmlCode]="'&lt;div class=&quot;counter&quot;&gt;\n    &lt;span&gt;Actual counter value: {{count}}&lt;/span&gt;\n    &lt;!-- if count is 9, then span will be visible --&gt;\n    &lt;span *if=&quot;isVisible()&quot;&gt;\n        Yeah you did it!\n    &lt;/span&gt;\n\n    &lt;div class=&quot;button__group&quot;&gt;\n        &lt;ao-button (click)=&quot;addCounter()&quot;&gt;+1&lt;/ao-button&gt;\n        &lt;ao-button (click)=&quot;subtractCounter()&quot;&gt;-1&lt;/ao-button&gt;\n        &lt;ao-button (click)=&quot;resetCounter()&quot;&gt;Reset&lt;/ao-button&gt;\n    &lt;/div&gt;\n&lt;/div&gt;'"
+                        [tsCode]="'@ComponentDecorator({ \n    templatePath: &quot;./counter.html&quot;, \n    stylePath: &quot;./counter.scss&quot;, \n    selector: &quot;ao-counter&quot; \n})\nexport class Counter extends Component {\n    @StateProperty count: number = 0;\n\n    @Expose\n    addCounter(): void {\n        this.count++;\n    }\n\n    @Expose\n    subtractCounter(): void {\n        this.count--;\n    }\n\n    @Expose\n    resetCounter(): void {\n        this.count = 0;\n    }\n\n    @Expose\n    isVisible(): boolean {\n        return this.count === 9;\n    }\n}'">
+                    </ao-code-documentation>
+                </section>
 
-        <div class="runner mt-5">
-            <ao-simpleform></ao-simpleform>
-        </div>
+                <section class="component-card">
+                    <div class="card-header">
+                        <h3 class="card-title">Simple Form</h3>
+                        <span class="component-badge">Form</span>
+                    </div>
+                    <div class="card-content">
+                        <ao-simpleform></ao-simpleform>
+                    </div>
+                    <ao-code-documentation 
+                        [htmlCode]="'&lt;div&gt;\n    &lt;label for=&quot;name&quot;&gt;Type your name:&lt;/label&gt;\n    &lt;input type=&quot;text&quot; id=&quot;name&quot; (value)=&quot;name&quot;&gt; \n    &lt;div class=&quot;greeting&quot;&gt;\n        Hello {{ name }}! Welcome, to componentifly 🙂!!!\n    &lt;/div&gt; \n&lt;/div&gt;'"
+                        [tsCode]="'@ComponentDecorator({ \n    templatePath: &quot;./simpleform.html&quot;, \n    stylePath: &quot;./simpleform.scss&quot;, \n    selector: &quot;ao-simpleform&quot; \n})\nexport class Simpleform extends Component {\n    @StateProperty name: string = &quot;Bob&quot;;\n\n    // template & styles provided by decorator\n    // No methods to expose for this component\n}'">
+                    </ao-code-documentation>
+                </section>
 
-        <div class="runner mt-5">
-            <ao-modal-demo></ao-modal-demo>
-        </div>
+                <section class="component-card">
+                    <div class="card-header">
+                        <h3 class="card-title">Modal Demo</h3>
+                        <span class="component-badge">UI</span>
+                    </div>
+                    <div class="card-content">
+                        <ao-modal-demo></ao-modal-demo>
+                    </div>
+                    <ao-code-documentation 
+                        [htmlCode]="'&lt;div class=&quot;modal-demo&quot;&gt;\n    &lt;div class=&quot;demo-grid&quot;&gt;\n        &lt;ao-button (click)=&quot;openSimple()&quot;&gt;Simple message&lt;/ao-button&gt;\n        &lt;ao-button (click)=&quot;openWithTitle()&quot;&gt;With title&lt;/ao-button&gt;\n        &lt;ao-button (click)=&quot;openConfirmOnly()&quot;&gt;Confirm only&lt;/ao-button&gt;\n        &lt;ao-button (click)=&quot;openNoFooter()&quot;&gt;No footer&lt;/ao-button&gt;\n        &lt;ao-button (click)=&quot;openLargeContent()&quot;&gt;Large content&lt;/ao-button&gt;\n        &lt;ao-button (click)=&quot;openForm()&quot;&gt;Form content&lt;/ao-button&gt;\n    &lt;/div&gt;\n    &lt;div class=&quot;demo-result&quot;&gt;Last submitted name: {{submittedName}}&lt;/div&gt;\n    &lt;ao-modal id=&quot;demoModal&quot; style=&quot;display: none;&quot;&gt;&lt;/ao-modal&gt;\n&lt;/div&gt;'"
+                        [tsCode]="'@ComponentDecorator({\n    templatePath: &quot;./modal-demo.html&quot;,\n    stylePath: &quot;./modal-demo.scss&quot;,\n    selector: &quot;ao-modal-demo&quot;,\n})\nexport class ModalDemo extends Component {\n    @StateProperty submittedName: string = &quot;Paul&quot;;\n\n    @Expose openSimple() {\n        this.openTestcase({ \n            title: &quot;Simple&quot;, \n            message: &quot;A simple modal message.&quot; \n        });\n    }\n\n    @Expose openWithTitle() {\n        this.openTestcase({\n            title: &quot;Titled Modal&quot;,\n            message: &quot;Modal with a custom title.&quot;,\n        });\n    }\n\n    // ... more modal methods\n}'">
+                    </ao-code-documentation>
+                </section>
 
-        <div class="runner mt-5">
-            <ao-list></ao-list>
-        </div>
+                <section class="component-card component-card--wide">
+                    <div class="card-header">
+                        <h3 class="card-title">Dynamic List</h3>
+                        <span class="component-badge">Data</span>
+                    </div>
+                    <div class="card-content">
+                        <ao-list></ao-list>
+                    </div>
+                    <ao-code-documentation 
+                        [htmlCode]="'&lt;div class=&quot;list-container&quot;&gt;\n    &lt;div class=&quot;list-column&quot;&gt;\n        &lt;div class=&quot;list-section&quot;&gt;\n            &lt;h2 class=&quot;list-title&quot;&gt;Simple List&lt;/h2&gt;\n            &lt;ul class=&quot;list-items&quot;&gt;\n                &lt;li class=&quot;list-item&quot; *for=&quot;let item of items&quot;&gt;\n                    &lt;span class=&quot;item-content&quot;&gt;{{ item }}&lt;/span&gt; \n                    &lt;ao-button class=&quot;remove-btn&quot; name=&quot;×&quot; (click)=&quot;removeItem(item)&quot;&gt;&lt;/ao-button&gt;\n                &lt;/li&gt;\n            &lt;/ul&gt;\n            &lt;ao-button class=&quot;add-btn&quot; name=&quot;+ Add Item&quot; (click)=&quot;addItem()&quot;&gt;&lt;/ao-button&gt;\n        &lt;/div&gt;\n    &lt;/div&gt;\n    &lt;!-- Object list column... --&gt;\n&lt;/div&gt;'"
+                        [tsCode]="'@ComponentDecorator({\n    templatePath: &quot;./list.html&quot;,\n    stylePath: &quot;./list.scss&quot;,\n    selector: &quot;ao-list&quot;\n})\nexport class List extends Component {\n    @StateProperty items: string[] = [&quot;Item 1&quot;, &quot;Item 2&quot;, &quot;Item 3&quot;];\n    @StateProperty objItems: {id: number, name: string}[] = [\n        { id: 1, name: &quot;Object Item 1&quot; },\n        { id: 2, name: &quot;Object Item 2&quot; }\n    ];\n\n    @Expose\n    addItem(): void {\n        const newItem = `Item ${this.items.length + 1}`;\n        this.items = [...this.items, newItem];\n    }\n\n    @Expose\n    removeItem(text: string): void {\n        this.items = this.items.filter(i => i !== text);\n    }\n}'">
+                    </ao-code-documentation>
+                </section>
+
+                <section class="component-card component-card--wide">
+                    <div class="card-header">
+                        <h3 class="card-title">Chat Interface</h3>
+                        <span class="component-badge">Communication</span>
+                    </div>
+                    <div class="card-content">
+                        <ao-chat [name]="15">
+                            <slot name="header">Sarah Johnson</slot>
+                            <slot name="message">Hey! Just wanted to let you know that the project files are ready for review. I've uploaded everything to the shared folder. Let me know if you need any clarifications! 🚀</slot>
+                            <slot name="avatar">SJ</slot>
+                            <slot name="timestamp">2 minutes ago</slot>
+                        </ao-chat>
+                    </div>
+                    <ao-code-documentation 
+                        [htmlCode]="'&lt;div class=&quot;chat&quot;&gt;\n    &lt;div class=&quot;chat-header&quot;&gt;\n        &lt;div class=&quot;header-content&quot;&gt;[[header]]&lt;/div&gt;\n        &lt;div class=&quot;chat-id&quot;&gt;Chat #{{ name }}&lt;/div&gt;\n    &lt;/div&gt;\n    \n    &lt;div class=&quot;chat-messages&quot;&gt;\n        &lt;div class=&quot;message-container&quot;&gt;\n            &lt;div class=&quot;avatar-wrapper&quot;&gt;\n                &lt;div class=&quot;avatar&quot;&gt;[[avatar]]&lt;/div&gt;\n                &lt;div class=&quot;status-indicator&quot;&gt;&lt;/div&gt;\n            &lt;/div&gt;\n            &lt;div class=&quot;message-content&quot;&gt;\n                &lt;div class=&quot;message-bubble&quot;&gt;\n                    &lt;div class=&quot;message-text&quot;&gt;[[message]]&lt;/div&gt;\n                    &lt;div class=&quot;message-timestamp&quot;&gt;[[timestamp]]&lt;/div&gt;\n                &lt;/div&gt;\n            &lt;/div&gt;\n        &lt;/div&gt;\n    &lt;/div&gt;\n    \n    &lt;div class=&quot;chat-actions&quot;&gt;\n        &lt;ao-button (click)=&quot;incrementName()&quot;&gt;Send Message&lt;/ao-button&gt;\n    &lt;/div&gt;\n&lt;/div&gt;'"
+                        [tsCode]="'@ComponentDecorator({ \n    templatePath: &quot;./chat.html&quot;, \n    stylePath: &quot;./chat.scss&quot;, \n    selector: &quot;ao-chat&quot; \n})\nexport class Chat extends Component {\n    @SlotProperty header;\n    @SlotProperty message;\n    @SlotProperty avatar;\n    @SlotProperty timestamp;\n\n    @InputProperty name: number = 0;\n\n    @Expose\n    incrementName() {\n        this.name++;\n    }\n}'">
+                    </ao-code-documentation>
+                </section>
+            </div>
+        </main>
+
+        <footer class="app-footer">
+            <p class="footer-text">Built with ❤️ using Componentifly</p>
+        </footer>
     </div>
 </body>
 </html>

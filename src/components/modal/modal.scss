@@ -1,6 +1,11 @@
-/* ensure the host generates a block-level box so child flex layout works */
-:host {
-	display: block;
+:host([open]) {
+	/* Force modal to break completely free from any parent transform context */
+	position: fixed !important;
+	top: 0 !important;
+	left: 0 !important;
+	width: 100vw !important;
+	height: 100vh !important;
+	z-index: 10000 !important;
 }
 
 :host([open]) .modal__wrapper {
@@ -14,18 +19,23 @@
 .modal__wrapper {
 	position: fixed;
 	inset: 0;
+	/* Break completely free from any parent container */
+	top: 0 !important;
+	left: 0 !important;
+	right: 0 !important;
+	bottom: 0 !important;
 	/* prevent accidental floats from user/other styles that would break flex centering */
 	float: none;
 	/* ensure the wrapper explicitly fills the viewport for accurate centering */
-	width: 100vw;
-	height: 100vh;
+	width: 100vw !important;
+	height: 100vh !important;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	padding: 20px; /* give space on small screens so centering works */
 	box-sizing: border-box;
 	background: rgba(0,0,0,0.5);
-	z-index: 1000;
+	z-index: 10001;
 }
 
 .modal {
@@ -41,6 +51,13 @@
 	max-height: 90vh;
 	display: flex;
 	flex-direction: column;
+	/* Prevent global styles from affecting modal */
+	transform: none !important;
+	transition: none !important;
+	/* Ensure no hover effects from component-card styles */
+	border: 1px solid #ddd !important;
+	/* Reset any global card styles */
+	z-index: 10002;
 }
 
 .modal__header, .modal__footer {
@@ -118,4 +135,9 @@
 	border-radius: 4px;
 	border: 1px solid #ccc;
 	display: block;
+}
+
+/* Re-enable only the transforms we actually want */
+.modal__close span {
+	transform: translateY(-1px) !important;
 }

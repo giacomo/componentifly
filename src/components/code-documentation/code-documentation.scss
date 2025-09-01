@@ -1,0 +1,651 @@
+@import '../../assets/scss/partials/variables';
+
+.code-documentation {
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    background: linear-gradient(135deg, #fafbfc 0%, #f8f9fa 100%);
+    border-radius: 0 0 12px 12px;
+    overflow: hidden;
+    box-shadow: 
+        0 4px 16px rgba(0, 0, 0, 0.04),
+        0 1px 4px rgba(0, 0, 0, 0.02);
+    margin-top: $spacing-lg;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 260px; // Reduced height from 320px
+    display: flex;
+    flex-direction: column;
+    
+    // Ensure this component is always at the bottom of its container
+    align-self: flex-end;
+    width: 100%;
+    
+    &:hover {
+        box-shadow: 
+            0 8px 24px rgba(0, 0, 0, 0.08),
+            0 2px 8px rgba(0, 0, 0, 0.04);
+        transform: translateY(-1px);
+    }
+    
+    .code-tabs {
+        display: flex;
+        background: linear-gradient(135deg, #f1f3f4 0%, #e8eaed 100%);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        position: relative;
+        
+        &::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, rgba($primary-color, 0.3) 50%, transparent 100%);
+        }
+        
+        .code-tab {
+            background: transparent;
+            border: none;
+            padding: $spacing-md $spacing-lg;
+            cursor: pointer;
+            font-size: $font-size-sm;
+            font-weight: 600;
+            color: $text-secondary;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            min-height: 48px;
+            border-radius: 0;
+            box-shadow: none;
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: $spacing-xs;
+            flex: 1;
+            justify-content: center;
+            
+            .tab-icon {
+                font-size: 14px;
+                opacity: 0.7;
+                transition: opacity 0.3s ease;
+            }
+            
+            &::before {
+                content: '';
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: currentColor;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                position: absolute;
+                left: 12px;
+            }
+            
+            &:hover {
+                background: rgba($primary-color, 0.08);
+                color: $primary-color;
+                transform: translateY(-1px);
+                box-shadow: 0 2px 8px rgba($primary-color, 0.15);
+                
+                .tab-icon {
+                    opacity: 1;
+                }
+                
+                &::before {
+                    opacity: 0.6;
+                }
+            }
+            
+            &.active {
+                color: $primary-color;
+                border-bottom-color: $primary-color;
+                background: rgba(255, 255, 255, 0.9);
+                box-shadow: 0 2px 12px rgba($primary-color, 0.2);
+                
+                .tab-icon {
+                    opacity: 1;
+                }
+                
+                &::before {
+                    opacity: 1;
+                }
+            }
+        }
+        
+        .copy-btn {
+            background: transparent;
+            border: 1px solid rgba($primary-color, 0.3);
+            padding: $spacing-sm $spacing-md;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            color: $primary-color;
+            border-radius: 6px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin: 8px;
+            min-width: 80px;
+            justify-content: center;
+            height: 32px;
+            
+            .copy-icon {
+                font-size: 12px;
+                transition: transform 0.2s ease;
+            }
+            
+            &:hover {
+                background: rgba($primary-color, 0.1);
+                border-color: $primary-color;
+                transform: translateY(-1px);
+                box-shadow: 0 2px 8px rgba($primary-color, 0.2);
+                
+                .copy-icon {
+                    transform: scale(1.1);
+                }
+            }
+            
+            &.copy-btn--success {
+                background: rgba(#4caf50, 0.1);
+                border-color: #4caf50;
+                color: #4caf50;
+                
+                &:hover {
+                    background: rgba(#4caf50, 0.15);
+                }
+            }
+            
+            &:active {
+                transform: translateY(0);
+                box-shadow: 0 1px 4px rgba($primary-color, 0.3);
+            }
+        }
+    }
+    .code-content {
+        position: relative;
+        background: #1e1e1e;
+        flex: 1; // Fill remaining space after tabs
+        display: flex;
+        flex-direction: column;
+        overflow: hidden; // Prevent content from overflowing the container
+        border-radius: 0 0 12px 12px; // Match parent border radius to prevent white corners
+        
+        .code-block {
+            display: none;
+            padding: 0;
+            margin: 0;
+            position: relative;
+            flex: 1; // Fill available space
+            overflow: hidden; // Prevent overflow from this container
+            
+            &.active {
+                display: block; // Change back to block instead of flex
+                animation: fadeIn 0.3s ease-in-out;
+                height: 100%; // Ensure it fills the container
+            }
+            
+            // Add a subtle code type indicator
+            &::before {
+                content: attr(data-language);
+                position: absolute;
+                top: 12px;
+                right: 16px;
+                font-size: 10px;
+                color: rgba(255, 255, 255, 0.4);
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                font-weight: 600;
+                z-index: 2;
+                background: rgba(0, 0, 0, 0.3);
+                padding: 2px 6px;
+                border-radius: 3px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            pre {
+                margin: 0;
+                padding: $spacing-xl;
+                background: linear-gradient(135deg, #1e1e1e 0%, #252526 100%);
+                color: #d4d4d4;
+                font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace;
+                font-size: 13px;
+                line-height: 1.6;
+                overflow-y: auto; // Enable vertical scrolling
+                overflow-x: auto; // Enable horizontal scrolling for long lines
+                border-radius: 0 0 12px 12px; // Match parent border radius
+                position: relative;
+                font-feature-settings: 'liga' 1, 'calt' 1;
+                white-space: pre;
+                word-wrap: normal;
+                overflow-wrap: normal;
+                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+                height: calc(100% + 3px); // Extended height to ensure proper coverage
+                box-sizing: border-box; // Include padding in height calculation
+                
+                // Add subtle border on the left
+                border-left: 3px solid rgba($primary-color, 0.5);
+                
+                // Add subtle pattern overlay
+                &::after {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background-image: 
+                        radial-gradient(circle at 1px 1px, rgba(255,255,255,0.02) 1px, transparent 0);
+                    background-size: 20px 20px;
+                    pointer-events: none;
+                    opacity: 0.3;
+                }
+                
+                &::-webkit-scrollbar {
+                    width: 6px; // Reduced width for vertical scrollbar
+                    height: 6px; // Reduced height for horizontal scrollbar
+                }
+                
+                &::-webkit-scrollbar-track {
+                    background: rgba(255, 255, 255, 0.05);
+                    border-radius: 3px; // Smaller border radius to match size
+                }
+                
+                &::-webkit-scrollbar-thumb {
+                    background: rgba(255, 255, 255, 0.2);
+                    border-radius: 3px; // Smaller border radius to match size
+                    
+                    &:hover {
+                        background: rgba(255, 255, 255, 0.3);
+                    }
+                }
+                
+                code {
+                    background: transparent;
+                    color: inherit;
+                    padding: 0;
+                    font-size: inherit;
+                    border-radius: 0;
+                    font-weight: 400;
+                    letter-spacing: 0.02em;
+                    display: block;
+                    white-space: pre;
+                    word-wrap: normal;
+                    overflow-wrap: normal;
+                    position: relative;
+                    z-index: 1;
+                    
+                    &.language-html,
+                    &.language-typescript {
+                        // Basic text coloring for readability
+                        color: #d4d4d4;
+                        
+                        // Ensure proper line breaks and formatting
+                        white-space: pre;
+                        -moz-tab-size: 4;
+                        tab-size: 4;
+                        
+                        // Apply some basic highlighting through text patterns
+                        text-rendering: optimizeLegibility;
+                        font-variant-ligatures: common-ligatures;
+                    }
+                }
+                
+                // Add a subtle glow effect at the top
+                &::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    height: 1px;
+                    background: linear-gradient(90deg, 
+                        transparent 0%, 
+                        rgba($primary-color, 0.3) 20%, 
+                        rgba($primary-color, 0.6) 50%, 
+                        rgba($primary-color, 0.3) 80%, 
+                        transparent 100%);
+                    opacity: 0.8;
+                    z-index: 2;
+                }
+            }
+        }
+        
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, rgba(100, 181, 246, 0.3) 50%, transparent 100%);
+            z-index: 1;
+        }
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+// Enhanced VS Code Dark+ theme syntax highlighting
+.code-block pre code {
+    // HTML/Template syntax highlighting
+    .hljs-tag {
+        color: #569cd6; // Blue for HTML tags
+    }
+    
+    .hljs-name {
+        color: #569cd6; // Blue for tag names
+    }
+    
+    .hljs-attr {
+        color: #9cdcfe; // Light blue for attributes
+    }
+    
+    .hljs-string {
+        color: #ce9178; // Orange for strings
+    }
+    
+    // TypeScript/JavaScript syntax highlighting
+    .hljs-keyword {
+        color: #569cd6; // Blue for keywords
+    }
+    
+    .hljs-function {
+        color: #dcdcaa; // Yellow for functions
+    }
+    
+    .hljs-class {
+        color: #4ec9b0; // Teal for classes
+    }
+    
+    .hljs-decorator {
+        color: #569cd6; // Blue for decorators
+    }
+    
+    .hljs-comment {
+        color: #6a9955; // Green for comments
+        font-style: italic;
+    }
+    
+    .hljs-number {
+        color: #b5cea8; // Light green for numbers
+    }
+    
+    .hljs-built_in {
+        color: #4ec9b0; // Teal for built-ins
+    }
+    
+    .hljs-type {
+        color: #4ec9b0; // Teal for types
+    }
+    
+    .hljs-variable {
+        color: #9cdcfe; // Light blue for variables
+    }
+    
+    .hljs-property {
+        color: #9cdcfe; // Light blue for properties
+    }
+    
+    .hljs-params {
+        color: #9cdcfe; // Light blue for parameters
+    }
+}
+
+// Enhanced manual syntax highlighting classes (VS Code Dark+ theme)
+.code-block pre {
+    // Keywords (export, class, function, etc.)
+    .keyword {
+        color: #569cd6;
+        font-weight: 500;
+    }
+    
+    // Decorators (@Component, @State, etc.)
+    .decorator {
+        color: #569cd6;
+        font-weight: 500;
+    }
+    
+    // Strings
+    .string {
+        color: #ce9178;
+    }
+    
+    // Comments
+    .comment {
+        color: #6a9955;
+        font-style: italic;
+    }
+    
+    // HTML tags
+    .tag {
+        color: #569cd6;
+    }
+    
+    // Attributes
+    .attr {
+        color: #9cdcfe;
+    }
+    
+    // Values
+    .value {
+        color: #ce9178;
+    }
+    
+    // Types (number, string, boolean, etc.)
+    .type {
+        color: #4ec9b0;
+    }
+    
+    // Functions/methods
+    .function {
+        color: #dcdcaa;
+    }
+    
+    // Variables and properties
+    .variable {
+        color: #9cdcfe;
+    }
+    
+    // Numbers
+    .number {
+        color: #b5cea8;
+    }
+    
+    // Punctuation
+    .punctuation {
+        color: #d4d4d4;
+    }
+    
+    // Operators
+    .operator {
+        color: #d4d4d4;
+    }
+    
+    // Class names
+    .class-name {
+        color: #4ec9b0;
+        font-weight: 500;
+    }
+    
+    // Interface names
+    .interface-name {
+        color: #4ec9b0;
+        font-weight: 500;
+    }
+    
+    // Angular specific highlighting
+    .directive {
+        color: #c586c0;
+        font-weight: 500;
+    }
+    
+    .event {
+        color: #9cdcfe;
+        font-style: italic;
+    }
+    
+    .property {
+        color: #9cdcfe;
+    }
+    
+    .interpolation {
+        color: #dcdcaa;
+        background: rgba(220, 220, 170, 0.1);
+        padding: 1px 2px;
+        border-radius: 2px;
+    }
+}
+
+// Responsive adjustments for code documentation
+@media (max-width: 768px) {
+    .code-documentation {
+        margin-top: $spacing-md;
+        border-radius: 0 0 8px 8px;
+        height: 220px; // Reduced from 280px
+        
+        .code-tabs {
+            .code-tab {
+                padding: $spacing-sm $spacing-md;
+                font-size: 12px;
+                min-height: 40px;
+                
+                .tab-icon {
+                    font-size: 12px;
+                }
+                
+                &::before {
+                    width: 4px;
+                    height: 4px;
+                    left: 8px;
+                }
+            }
+            
+            .copy-btn {
+                margin: 6px;
+                padding: $spacing-xs $spacing-sm;
+                font-size: 11px;
+                min-width: 60px;
+                height: 28px;
+                
+                .copy-icon {
+                    font-size: 10px;
+                }
+            }
+        }
+        
+        .code-content {
+            border-radius: 0 0 8px 8px;
+        }
+        
+        .code-content .code-block pre {
+            padding: $spacing-lg;
+            font-size: 12px;
+            line-height: 1.5;
+            border-radius: 0 0 8px 8px;
+        }
+    }
+}
+
+@media (max-width: 480px) {
+    .code-documentation {
+        height: 180px; // Reduced from 240px
+        
+        .code-tabs {
+            flex-wrap: wrap;
+            
+            .code-tab {
+                padding: $spacing-xs $spacing-sm;
+                font-size: 11px;
+                min-height: 36px;
+                flex: 1;
+                text-align: center;
+                
+                .tab-icon {
+                    font-size: 10px;
+                }
+                
+                &::before {
+                    display: none;
+                }
+            }
+            
+            .copy-btn {
+                order: 3;
+                flex: 1;
+                margin: 4px;
+                min-width: auto;
+            }
+        }
+        
+        .code-content .code-block pre {
+            padding: $spacing-md;
+            font-size: 11px;
+        }
+    }
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+    .code-documentation {
+        background: linear-gradient(135deg, #1a1a1a 0%, #212121 100%);
+        border-top-color: rgba(255, 255, 255, 0.1);
+        
+        .code-tabs {
+            background: linear-gradient(135deg, #2d2d2d 0%, #252525 100%);
+            border-bottom-color: rgba(255, 255, 255, 0.1);
+            
+            &::after {
+                background: linear-gradient(90deg, transparent 0%, rgba(100, 181, 246, 0.4) 50%, transparent 100%);
+            }
+            
+            .code-tab {
+                color: rgba(255, 255, 255, 0.7);
+                
+                &:hover {
+                    background: rgba(100, 181, 246, 0.1);
+                    color: #64b5f6;
+                }
+                
+                &.active {
+                    background: rgba(0, 0, 0, 0.3);
+                    color: #64b5f6;
+                    border-bottom-color: #64b5f6;
+                }
+            }
+        }
+    }
+}
+
+// Print styles
+@media print {
+    .code-documentation {
+        box-shadow: none;
+        border: 1px solid #ddd;
+        
+        .code-tabs {
+            display: none;
+        }
+        
+        .code-content .code-block {
+            display: block !important;
+            
+            pre {
+                background: white !important;
+                color: black !important;
+                font-size: 10px;
+                
+                code * {
+                    color: black !important;
+                }
+            }
+        }
+    }
+}

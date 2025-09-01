@@ -1,16 +1,27 @@
-<div>
-    <h2>This is a simple list :</h2>
-    <ul>
-        <li *for="let item of items"><span>{{ item }}</span> <ao-button (click)="removeItem(item)">X</ao-button></li>
-    </ul>
-    <ao-button (click)="addItem()">Add item</ao-button>
-</div>
+<div class="list-container">
+    <div class="list-column">
+        <div class="list-section">
+            <h2 class="list-title">Simple List</h2>
+            <ul class="list-items">
+                <li class="list-item" *for="let item of items">
+                    <span class="item-content">{{ item }}</span> 
+                    <ao-button class="remove-btn" name="×" (click)="removeItem(item)"></ao-button>
+                </li>
+            </ul>
+            <ao-button class="add-btn" name="+ Add Item" (click)="addItem()"></ao-button>
+        </div>
+    </div>
 
-
-<div>
-    <h2>This is a object list :</h2>
-    <ul>
-        <li *for="let item of objItems">{{ item.name }} <ao-button (click)="removeObjItem(item)">X</ao-button></li>
-    </ul>
-    <ao-button (click)="addObjItem()">Add item</ao-button>
+    <div class="list-column">
+        <div class="list-section">
+            <h2 class="list-title">Object List</h2>
+            <ul class="list-items">
+                <li class="list-item" *for="let item of objItems">
+                    <span class="item-content">{{ item.name }}</span> 
+                    <ao-button class="remove-btn" name="×" (click)="removeObjItem(item)"></ao-button>
+                </li>
+            </ul>
+            <ao-button class="add-btn" name="+ Add Item" (click)="addObjItem()"></ao-button>
+        </div>
+    </div>
 </div>

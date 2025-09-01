@@ -1,11 +1,8 @@
 import { Component, ComponentDecorator, Expose, StateProperty } from "../../lib";
-// state interface no longer needed; using @StateProperty
 
 @ComponentDecorator({ templatePath: './counter.html', stylePath: './counter.scss', selector: 'ao-counter' })
 export class Counter extends Component {
     @StateProperty count: number = 0;
-
-    // template & styles provided by decorator
 
     @Expose
     addCounter(): void {
