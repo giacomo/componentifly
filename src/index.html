@@ -35,8 +35,8 @@
                         <ao-counter></ao-counter>
                     </div>
                     <ao-code-documentation 
-                        [htmlCode]="'Hello World HTML'"
-                        [tsCode]="'Hello World TypeScript'">
+                        [htmlCode]="'&lt;div class=&quot;counter&quot;&gt;\n    &lt;span&gt;Actual counter value: {{count}}&lt;/span&gt;\n    &lt;!-- if count is 9, then span will be visible --&gt;\n    &lt;span *if=&quot;isVisible()&quot;&gt;\n        Yeah you did it!\n    &lt;/span&gt;\n\n    &lt;div class=&quot;button__group&quot;&gt;\n        &lt;ao-button (click)=&quot;addCounter()&quot;&gt;+1&lt;/ao-button&gt;\n        &lt;ao-button (click)=&quot;subtractCounter()&quot;&gt;-1&lt;/ao-button&gt;\n        &lt;ao-button (click)=&quot;resetCounter()&quot;&gt;Reset&lt;/ao-button&gt;\n    &lt;/div&gt;\n&lt;/div&gt;'"
+                        [tsCode]="'@ComponentDecorator({ \n    templatePath: &quot;./counter.html&quot;, \n    stylePath: &quot;./counter.scss&quot;, \n    selector: &quot;ao-counter&quot; \n})\nexport class Counter extends Component {\n    @StateProperty count: number = 0;\n\n    @Expose\n    addCounter(): void {\n        this.count++;\n    }\n\n    @Expose\n    subtractCounter(): void {\n        this.count--;\n    }\n\n    @Expose\n    resetCounter(): void {\n        this.count = 0;\n    }\n\n    @Expose\n    isVisible(): boolean {\n        return this.count === 9;\n    }\n}'">
                     </ao-code-documentation>
                 </section>
 

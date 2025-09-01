@@ -41,6 +41,7 @@ export abstract class Component extends HTMLElement {
                 try { (this as any)[storageSym] = value; } catch {}
                 try { if (!this.state || typeof this.state !== 'object') this.state = {}; (this.state as any)[key] = value; } catch {}
                 try { this.updateBindings(key, value); } catch {}
+                try { (this as any).updateAllFunctionBindings?.(); } catch {}
                 try { (this as any).evaluateDirectives?.(); } catch {}
                 try { (this as any).syncBindings?.(); } catch {}
                 try { queueMicrotask?.(() => { try { (this as any).syncBindings?.(); } catch {} }); } catch {}
@@ -163,6 +164,7 @@ export abstract class Component extends HTMLElement {
                     try { (this as any)[storageSym] = value; } catch {}
                     try { if (!this.state || typeof this.state !== 'object') this.state = {}; (this.state as any)[key] = value; } catch {}
                     try { this.updateBindings(key, value); } catch {}
+                    try { (this as any).updateAllFunctionBindings?.(); } catch {}
                     try { (this as any).evaluateDirectives?.(); } catch {}
                     try { (this as any).syncBindings?.(); } catch {}
                     try { queueMicrotask?.(() => { try { (this as any).syncBindings?.(); } catch {} }); } catch {}
@@ -563,6 +565,16 @@ export abstract class Component extends HTMLElement {
         }
       } catch (e) {}
     }
+
+    // Handle function bindings
+    const functionBindSelectors = this.selectAll("[data-bind-function]");
+    for (const selector of Array.from(functionBindSelectors)) {
+      const attr = selector.attributes.getNamedItem("data-bind-function");
+      if (!attr) continue;
+      const fnName = attr.value;
+      this.updateFunctionBinding(fnName, selector as HTMLElement);
+    }
+
     // re-evaluate structural directives (e.g. *if) after bindings update
     try {
       this.evaluateDirectives();
@@ -619,6 +631,12 @@ export abstract class Component extends HTMLElement {
     try {
       this.updateBindings(name, value);
     } catch {}
+    
+    // Update all function bindings since they might depend on this state change
+    try {
+      this.updateAllFunctionBindings();
+    } catch {}
+
     try {
       this.evaluateDirectives();
     } catch {}
@@ -730,8 +748,8 @@ export abstract class Component extends HTMLElement {
 
     renderTemplate = this.setDefaultInputs(renderTemplate);
 
-    // extract simple properties
-    const regex = /\{\{\s?([a-zA-Z0-9\-\_\.]+)\s?\}\}/g;
+    // extract properties and function calls
+    const regex = /\{\{\s?([a-zA-Z0-9\-\_\.]+(?:\(\))?)\s?\}\}/g;
     const raw = [...renderTemplate.matchAll(regex)];
     const matches: { match: string; variable: string }[] = raw.map((m) => ({
       match: m[0],
@@ -739,10 +757,21 @@ export abstract class Component extends HTMLElement {
     }));
 
     for (const match of matches) {
-      renderTemplate = renderTemplate.replaceAll(
-        match.match,
-        `<span data-bind="${match.variable}"></span>`
-      );
+      // Check if this is a function call
+      if (match.variable.endsWith("()")) {
+        const fnName = match.variable.replace(/\(\)$/, "");
+        // Create a span with a special attribute to mark it as a function call
+        renderTemplate = renderTemplate.replaceAll(
+          match.match,
+          `<span data-bind-function="${fnName}"></span>`
+        );
+      } else {
+        // Regular property binding
+        renderTemplate = renderTemplate.replaceAll(
+          match.match,
+          `<span data-bind="${match.variable}"></span>`
+        );
+      }
     }
 
     template.innerHTML = renderTemplate;
@@ -945,14 +974,35 @@ export abstract class Component extends HTMLElement {
                 }
               }
 
-              // text nodes: replace mustache bindings like {{ item }} or {{ item.prop }}
+              // text nodes: replace mustache bindings like {{ item }} or {{ item.prop }} or {{ functionName() }}
               for (const child of Array.from(node.childNodes)) {
                 if (child.nodeType === Node.TEXT_NODE) {
                   const text = child.textContent || "";
-                  const regex = /\{\{\s*([a-zA-Z0-9_\.\$]+)\s*\}\}/g;
+                  const regex = /\{\{\s*([a-zA-Z0-9_\.\$]+(?:\(\))?)\s*\}\}/g;
                   const replaced = text.replace(
                     regex,
                     (match: string, varName: string) => {
+                      // Handle function calls
+                      if (varName.endsWith("()")) {
+                        const fnName = varName.replace(/\(\)$/, "");
+                        if (
+                          getExposedMethods(this).has(fnName) &&
+                          typeof (this as any)[fnName] === "function"
+                        ) {
+                          try {
+                            const result = (this as any)[fnName].call(this);
+                            return result !== undefined && result !== null ? String(result) : "";
+                          } catch (e) {
+                            console.warn(`[evaluateDirectives] Error calling function '${fnName}':`, e);
+                            return "";
+                          }
+                        } else {
+                          console.warn(`[evaluateDirectives] Function '${fnName}' is not exposed or does not exist`);
+                          return "";
+                        }
+                      }
+                      
+                      // Handle regular variable bindings
                       if (varName === itemName)
                         return String(item != null ? item : "");
                       if (varName.startsWith(itemName + ".")) {
@@ -1041,6 +1091,44 @@ export abstract class Component extends HTMLElement {
         } catch {}
       }
     } catch {}
+  }
+
+  private updateFunctionBinding(fnName: string, element: HTMLElement): void {
+    try {
+      // Only allow explicitly exposed methods
+      if (
+        getExposedMethods(this).has(fnName) &&
+        typeof (this as any)[fnName] === "function"
+      ) {
+        try {
+          const result = (this as any)[fnName].call(this);
+          element.textContent = result !== undefined && result !== null ? String(result) : "";
+        } catch (e) {
+          element.textContent = "";
+          console.warn(`[updateFunctionBinding] Error calling function '${fnName}':`, e);
+        }
+      } else {
+        element.textContent = "";
+        console.warn(`[updateFunctionBinding] Function '${fnName}' is not exposed or does not exist`);
+      }
+    } catch (e) {
+      element.textContent = "";
+      console.error(`[updateFunctionBinding] Error in updateFunctionBinding for '${fnName}':`, e);
+    }
+  }
+
+  private updateAllFunctionBindings(): void {
+    try {
+      const functionBindSelectors = this.selectAll("[data-bind-function]");
+      for (const selector of Array.from(functionBindSelectors)) {
+        const attr = selector.attributes.getNamedItem("data-bind-function");
+        if (!attr) continue;
+        const fnName = attr.value;
+        this.updateFunctionBinding(fnName, selector as HTMLElement);
+      }
+    } catch (e) {
+      console.error("[updateAllFunctionBindings] Error updating function bindings:", e);
+    }
   }
 
   /**
