@@ -91,12 +91,11 @@
   &:hover {
     background: linear-gradient(135deg, $neutral-100 0%, $neutral-50 100%);
     border-color: $primary-light;
-    transform: translateX(4px);
-    box-shadow: $shadow-sm;
+    box-shadow: $shadow-md;
   }
   
   &:active {
-    transform: translateX(2px);
+    box-shadow: $shadow-sm;
   }
 }
 
@@ -184,79 +183,6 @@ ao-button.add-btn {
       outline: none;
       box-shadow: 0 0 0 2px rgba($primary-color, 0.3);
     }
-  }
-}
-
-// Fallback styles for non ao-button elements
-.remove-btn {
-  background: linear-gradient(135deg, $error, darken($error, 10%));
-  color: white;
-  border: none;
-  border-radius: $radius-sm;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 0;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  flex-shrink: 0;
-  min-height: unset;
-  
-  &:hover {
-    background: linear-gradient(135deg, darken($error, 5%), darken($error, 15%));
-    transform: scale(1.05);
-    box-shadow: 0 2px 4px 0 rgba($error, 0.3);
-  }
-  
-  &:active {
-    transform: scale(0.95);
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  }
-  
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px rgba($error, 0.3);
-  }
-}
-
-.add-btn {
-  background: linear-gradient(135deg, $primary-color, $primary-dark);
-  color: white;
-  border: none;
-  border-radius: $radius-md;
-  padding: 0.625rem 1rem;
-  font-size: $font-size-sm;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  width: 100%;
-  text-align: center;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-  min-height: 36px;
-  
-  &:hover {
-    background: linear-gradient(135deg, lighten($primary-color, 5%), $primary-color);
-    transform: translateY(-1px);
-    box-shadow: 0 3px 8px 0 rgba($primary-color, 0.3);
-  }
-  
-  &:active {
-    transform: translateY(0);
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  }
-  
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px rgba($primary-color, 0.3);
   }
 }
 

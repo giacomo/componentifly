@@ -5,12 +5,10 @@
             <ul class="list-items">
                 <li class="list-item" *for="let item of items">
                     <span class="item-content">{{ item }}</span> 
-                    <ao-button class="remove-btn" (click)="removeItem(item)">×</ao-button>
+                    <ao-button class="remove-btn" name="×" (click)="removeItem(item)"></ao-button>
                 </li>
             </ul>
-            <ao-button class="add-btn" (click)="addItem()">
-                <span>+ Add Item</span>
-            </ao-button>
+            <ao-button class="add-btn" name="+ Add Item" (click)="addItem()"></ao-button>
         </div>
     </div>
 
@@ -20,12 +18,10 @@
             <ul class="list-items">
                 <li class="list-item" *for="let item of objItems">
                     <span class="item-content">{{ item.name }}</span> 
-                    <ao-button class="remove-btn" (click)="removeObjItem(item)">×</ao-button>
+                    <ao-button class="remove-btn" name="×" (click)="removeObjItem(item)"></ao-button>
                 </li>
             </ul>
-            <ao-button class="add-btn" (click)="addObjItem()">
-                <span>+ Add Item</span>
-            </ao-button>
+            <ao-button class="add-btn" name="+ Add Item" (click)="addObjItem()"></ao-button>
         </div>
     </div>
 </div>
