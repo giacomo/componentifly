@@ -29,6 +29,15 @@
         <div class="runner mt-5">
             <ao-list></ao-list>
         </div>
+
+        <div class="runner mt-5">
+            <ao-chat>
+                <slot name="header">Chat Header</slot>
+                <slot name="message">Chat Message</slot>
+                <slot name="avatar">Chat Avatar</slot>
+                <slot name="timestamp">Chat Timestamp</slot>
+            </ao-chat>
+        </div>
     </div>
 </body>
 </html>

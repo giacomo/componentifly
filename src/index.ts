@@ -10,10 +10,11 @@ import { Simpleform } from './components/simpleform/simpleform';
 import { Modal } from './components/modal/modal';
 import { ModalDemo } from './components/modal-demo/modal-demo';
 import { List } from './components/list/list';
+import { Chat } from './components/chat/chat';
 
 
 const app = new Framework();
-app.registerComponents([Button, Counter, Simpleform, Modal, ModalDemo, List]);
+app.registerComponents([Button, Counter, Simpleform, Modal, ModalDemo, List, Chat]);
 
 
 const logger = new LogService('foo');

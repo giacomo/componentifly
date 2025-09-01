@@ -1,10 +1,10 @@
 import { StateType } from "./state-type";
 import { getDecoratedStateProps } from "./state.decorator";
+import { getDecoratedSlotProps } from "./slot.decorator";
 import { getExposedMethods } from "./expose.decorator";
 
 export abstract class Component extends HTMLElement {
   public state: StateType = {};
-  public inputAttributes = [];
   private __rendered = false;
   private __tmplModule: any | null = null;
   private __styleText: string | null = null;
@@ -568,6 +568,10 @@ export abstract class Component extends HTMLElement {
     this.attachShadow({ mode: "open" });
     if (this.shadowRoot)
       this.shadowRoot.appendChild(renderer.template.content.cloneNode(true));
+    
+    // Clean up slot elements from the host after processing
+    this.cleanupSlotElements();
+    
     this.__rendered = true;
     try {
       this.syncBindings();
@@ -623,13 +627,44 @@ export abstract class Component extends HTMLElement {
 
     const raw = [...template.matchAll(regex)];
     const hostText = this.textContent ? this.textContent.trim() : "";
+    
+    // Get slot properties from the class decorator
+    const slotProps = getDecoratedSlotProps(this);
+    const slotPropsMap = new Map<string, string>();
+    
+    for (const slotProp of slotProps) {
+      slotPropsMap.set(slotProp.name, slotProp.defaultValue || "");
+    }
+    
+    // Extract slot content from the host element
+    const slotContentMap = this.extractSlotContent();
+    
     const matches = raw.map((m) => {
       const inputName = (m[1] || "").trim();
-      // prefer host text for the common `name` input so users can write <ao-button>Label</ao-button>
-      const variable =
-        inputName === "name" && hostText.length > 0
-          ? hostText
-          : this.getAttribute(inputName) ?? "";
+      
+      let variable = "";
+      
+      // 1. First priority: Check for slot content (HTML slots)
+      if (slotContentMap.has(inputName)) {
+        variable = slotContentMap.get(inputName) || "";
+      }
+      // 2. Second priority: Check if user provided attribute
+      else if (this.getAttribute(inputName) !== null) {
+        variable = this.getAttribute(inputName) || "";
+      }
+      // 3. Third priority: For 'name' slot, use host text if available
+      else if (inputName === "name" && hostText.length > 0) {
+        variable = hostText;
+      }
+      // 4. Fourth priority: Use default value from @SlotProperty decorator
+      else if (slotPropsMap.has(inputName)) {
+        variable = slotPropsMap.get(inputName) || "";
+      }
+      // 5. Fallback: empty string (backward compatibility)
+      else {
+        variable = "";
+      }
+      
       return {
         match: m[0],
         variable,
@@ -641,6 +676,41 @@ export abstract class Component extends HTMLElement {
     }
 
     return template;
+  }
+
+  private extractSlotContent(): Map<string, string> {
+    const slotContentMap = new Map<string, string>();
+    
+    // Find all slot elements in the host element
+    const slots = this.querySelectorAll('slot[name]');
+    
+    for (const slotElement of Array.from(slots)) {
+      const slotName = slotElement.getAttribute('name');
+      if (slotName) {
+        // Get the innerHTML of the slot element
+        const content = slotElement.innerHTML.trim();
+        slotContentMap.set(slotName, content);
+      }
+    }
+    
+    // Also check for unnamed slot content (fallback to textContent for 'name' slot)
+    const unnamedSlots = this.querySelectorAll('slot:not([name])');
+    if (unnamedSlots.length > 0) {
+      const content = unnamedSlots[0].innerHTML.trim();
+      if (content) {
+        slotContentMap.set('name', content); // Default to 'name' slot
+      }
+    }
+    
+    return slotContentMap;
+  }
+
+  private cleanupSlotElements(): void {
+    // Remove all slot elements from the host after they've been processed
+    const slots = this.querySelectorAll('slot');
+    for (const slot of Array.from(slots)) {
+      slot.remove();
+    }
   }
 
   private getPreRenderedTemplate(): {
