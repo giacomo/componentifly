@@ -1,9 +1,274 @@
+@import '../../assets/scss/partials/variables';
+
 .chat {
     display: flex;
     flex-direction: column;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 8px;
-    max-width: 400px;
-    margin: 16px auto;
+    background: $bg-secondary;
+    border-radius: $radius-xl;
+    box-shadow: $shadow-lg;
+    max-width: 420px;
+    margin: $spacing-lg auto;
+    overflow: hidden;
+    border: 1px solid $neutral-200;
+    transition: all 0.3s ease;
+
+    &:hover {
+        box-shadow: $shadow-xl;
+        transform: translateY(-2px);
+    }
+}
+
+.chat-header {
+    background: $bg-accent;
+    color: white;
+    padding: $spacing-lg $spacing-xl;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+
+    &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    }
+
+    .header-content {
+        font-weight: 600;
+        font-size: $font-size-lg;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    .chat-id {
+        font-size: $font-size-sm;
+        opacity: 0.9;
+        background: rgba(255,255,255,0.2);
+        padding: $spacing-xs $spacing-sm;
+        border-radius: $radius-md;
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+    }
+}
+
+.chat-messages {
+    padding: $spacing-xl;
+    min-height: 200px;
+    background: linear-gradient(to bottom, $neutral-50, $bg-secondary);
+    position: relative;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 3px;
+        background: $primary-color;
+        border-radius: 0 0 $radius-sm $radius-sm;
+        opacity: 0.3;
+    }
+}
+
+.message-container {
+    display: flex;
+    gap: $spacing-md;
+    align-items: flex-start;
+}
+
+.avatar-wrapper {
+    position: relative;
+    flex-shrink: 0;
+
+    .avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: $bg-accent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: $font-size-lg;
+        box-shadow: $shadow-md;
+        border: 3px solid white;
+        overflow: hidden;
+        
+        // If avatar contains an image
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    }
+
+    .status-indicator {
+        position: absolute;
+        bottom: 2px;
+        right: 2px;
+        width: 12px;
+        height: 12px;
+        background: $success;
+        border: 2px solid white;
+        border-radius: 50%;
+        box-shadow: $shadow-sm;
+    }
+}
+
+.message-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.message-bubble {
+    background: white;
+    border-radius: $radius-lg $radius-lg $radius-lg $radius-sm;
+    padding: $spacing-md $spacing-lg;
+    box-shadow: $shadow-sm;
+    border: 1px solid $neutral-100;
+    position: relative;
+    transition: all 0.2s ease;
+
+    &:hover {
+        box-shadow: $shadow-md;
+        transform: translateY(-1px);
+    }
+
+    &::before {
+        content: '';
+        position: absolute;
+        left: -8px;
+        bottom: 8px;
+        width: 0;
+        height: 0;
+        border-style: solid;
+        border-width: 0 8px 8px 0;
+        border-color: transparent white transparent transparent;
+        filter: drop-shadow(-1px 0 1px rgba(0,0,0,0.05));
+    }
+
+    .message-text {
+        color: $text-primary;
+        font-size: $font-size-base;
+        line-height: 1.5;
+        margin-bottom: $spacing-xs;
+        word-wrap: break-word;
+    }
+
+    .message-timestamp {
+        color: $text-muted;
+        font-size: $font-size-xs;
+        text-align: right;
+        margin-top: $spacing-xs;
+        padding-top: $spacing-xs;
+        border-top: 1px solid $neutral-100;
+        font-weight: 500;
+    }
+}
+
+.chat-actions {
+    padding: $spacing-lg $spacing-xl;
+    background: $neutral-50;
+    border-top: 1px solid $neutral-200;
+    display: flex;
+    justify-content: flex-end;
+
+    .modern-btn {
+        background: $primary-color;
+        color: white;
+        border: none;
+        padding: $spacing-sm $spacing-lg;
+        border-radius: $radius-md;
+        font-weight: 600;
+        font-size: $font-size-sm;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: $shadow-sm;
+
+        &:hover {
+            background: $primary-dark;
+            box-shadow: $shadow-md;
+            transform: translateY(-1px);
+        }
+
+        &:active {
+            transform: translateY(0);
+            box-shadow: $shadow-sm;
+        }
+    }
+}
+
+// Responsive design
+@media (max-width: 480px) {
+    .chat {
+        margin: $spacing-md;
+        max-width: none;
+        border-radius: $radius-lg;
+    }
+
+    .chat-header {
+        padding: $spacing-md $spacing-lg;
+        flex-direction: column;
+        gap: $spacing-xs;
+        text-align: center;
+    }
+
+    .chat-messages {
+        padding: $spacing-lg;
+    }
+
+    .message-container {
+        gap: $spacing-sm;
+    }
+
+    .avatar-wrapper .avatar {
+        width: 40px;
+        height: 40px;
+        font-size: $font-size-base;
+    }
+
+    .chat-actions {
+        padding: $spacing-md $spacing-lg;
+    }
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+    .chat {
+        background: $neutral-800;
+        border-color: $neutral-700;
+    }
+
+    .chat-messages {
+        background: linear-gradient(to bottom, $neutral-800, $neutral-700);
+    }
+
+    .message-bubble {
+        background: $neutral-700;
+        border-color: $neutral-600;
+        color: $neutral-100;
+
+        .message-text {
+            color: $neutral-100;
+        }
+
+        .message-timestamp {
+            color: $neutral-400;
+            border-color: $neutral-600;
+        }
+
+        &::before {
+            border-color: transparent $neutral-700 transparent transparent;
+        }
+    }
+
+    .chat-actions {
+        background: $neutral-800;
+        border-color: $neutral-700;
+    }
 }
