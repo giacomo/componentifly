@@ -1,6 +1,10 @@
 <div class="chat">
+    <div class="preview">
+        <strong>ChatId: {{ name }}</strong>
+    </div>
     <div class="header">[[header]]</div>
     <div class="message">[[message]]</div>
     <div class="avatar">[[avatar]]</div>
     <div class="timestamp">[[timestamp]]</div>
+    <ao-button (click)="incrementName()">Test</ao-button>
 </div>

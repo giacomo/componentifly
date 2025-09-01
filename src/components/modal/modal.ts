@@ -135,7 +135,7 @@ export class Modal extends Component {
     this.title = data.title || '';
     this.message = data.message || '';
     this.footerType = data.footerType || 'default';
-    this.formName = data.data.name || '';
+    this.formName = data?.data?.name || '';
     // support both data.name and data.formName, but only override when provided
     try {
         const hasFormName = Object.prototype.hasOwnProperty.call(data, 'formName');

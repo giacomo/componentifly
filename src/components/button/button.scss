@@ -1,13 +1,16 @@
-button {
-    border:1px solid rgb(146, 157, 240);
-    border-radius: 4px;
-    font-size: 1.125rem;
-    background-color: rgb(16, 4, 119);
-    color: #fff;
-    padding: .5rem .725rem;
-    cursor: pointer;
+// Import variables for consistent styling
+@import '../../assets/scss/partials/variables';
 
-    &:hover {
-        background-color: lighten(rgb(16, 4, 119), 20%);
-    }
+// Main button component inherits from global button styles in styles.scss
+// This ensures consistency across the component library
+
+// Component-specific styles for ao-button wrapper
+:host {
+  display: inline-flex;
+}
+
+// Ensure the component respects the global button styles
+button {
+  // Component-specific override if needed
+  box-sizing: border-box;
 }

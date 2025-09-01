@@ -4,40 +4,88 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Componentifly - Modern Component Library</title>
     <link rel="stylesheet" href="assets/scss/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="index.js" type="module"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="jumbtron">
-            <span class="title">Welcome to componentifly!</span>
-        </div>
+    <div class="app-container">
+        <header class="hero-section">
+            <div class="hero-content">
+                <h1 class="hero-title">Welcome to Componentifly</h1>
+                <p class="hero-subtitle">A modern, lightweight component library built for the future</p>
+                <div class="hero-badge">
+                    <span class="badge-text">✨ Interactive Components</span>
+                </div>
+            </div>
+            <div class="hero-background"></div>
+        </header>
 
-        <div class="runner mt-5">
-            <ao-counter></ao-counter>
-        </div>
+        <main class="main-content">
+            <div class="components-grid">
+                <section class="component-card">
+                    <div class="card-header">
+                        <h3 class="card-title">Counter Component</h3>
+                        <span class="component-badge">Interactive</span>
+                    </div>
+                    <div class="card-content">
+                        <ao-counter></ao-counter>
+                    </div>
+                </section>
 
-        <div class="runner mt-5">
-            <ao-simpleform></ao-simpleform>
-        </div>
+                <section class="component-card">
+                    <div class="card-header">
+                        <h3 class="card-title">Simple Form</h3>
+                        <span class="component-badge">Form</span>
+                    </div>
+                    <div class="card-content">
+                        <ao-simpleform></ao-simpleform>
+                    </div>
+                </section>
 
-        <div class="runner mt-5">
-            <ao-modal-demo></ao-modal-demo>
-        </div>
+                <section class="component-card">
+                    <div class="card-header">
+                        <h3 class="card-title">Modal Demo</h3>
+                        <span class="component-badge">UI</span>
+                    </div>
+                    <div class="card-content">
+                        <ao-modal-demo></ao-modal-demo>
+                    </div>
+                </section>
 
-        <div class="runner mt-5">
-            <ao-list></ao-list>
-        </div>
+                <section class="component-card component-card--wide">
+                    <div class="card-header">
+                        <h3 class="card-title">Dynamic List</h3>
+                        <span class="component-badge">Data</span>
+                    </div>
+                    <div class="card-content">
+                        <ao-list></ao-list>
+                    </div>
+                </section>
 
-        <div class="runner mt-5">
-            <ao-chat>
-                <slot name="header">Chat Header</slot>
-                <slot name="message">Chat Message</slot>
-                <slot name="avatar">Chat Avatar</slot>
-                <slot name="timestamp">Chat Timestamp</slot>
-            </ao-chat>
-        </div>
+                <section class="component-card component-card--wide">
+                    <div class="card-header">
+                        <h3 class="card-title">Chat Interface</h3>
+                        <span class="component-badge">Communication</span>
+                    </div>
+                    <div class="card-content">
+                        <ao-chat [name]="15">
+                            <slot name="header">Chat Header</slot>
+                            <slot name="message">Chat Message</slot>
+                            <slot name="avatar">Chat Avatar</slot>
+                            <slot name="timestamp">Chat Timestamp</slot>
+                        </ao-chat>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <footer class="app-footer">
+            <p class="footer-text">Built with ❤️ using Componentifly</p>
+        </footer>
     </div>
 </body>
 </html>

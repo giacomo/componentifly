@@ -1,3 +1,6 @@
+// Import variables for consistent styling
+@import '../../assets/scss/partials/variables';
+
 /* ensure the host generates a block-level box so child flex layout works */
 :host {
 	display: block;
@@ -24,17 +27,20 @@
 	justify-content: center;
 	padding: 20px; /* give space on small screens so centering works */
 	box-sizing: border-box;
-	background: rgba(0,0,0,0.5);
+	background: rgba(0,0,0,0.6);
+	-webkit-backdrop-filter: blur(4px);
+	backdrop-filter: blur(4px);
 	z-index: 1000;
 }
 
 .modal {
-	background: #fff;
+	background: $bg-secondary;
 	width: 90%;
 	max-width: 480px;
-	border-radius: 6px;
+	border-radius: $radius-xl;
 	overflow: hidden;
-	box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+	box-shadow: $shadow-xl;
+	border: 1px solid $neutral-200;
 	/* Keep modal centered and constrain height; layout as column so only body scrolls */
 	margin: auto;
 	position: relative;
@@ -44,8 +50,8 @@
 }
 
 .modal__header, .modal__footer {
-	padding: 12px 16px;
-	background: #f7f7f7;
+	padding: $spacing-lg $spacing-xl;
+	background: linear-gradient(135deg, $neutral-50 0%, $bg-secondary 100%);
 }
 
 /* header layout: title left, close button right */
@@ -53,7 +59,8 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 12px;
+	gap: $spacing-lg;
+	border-bottom: 1px solid $neutral-200;
 }
 
 .modal__title {
@@ -61,6 +68,8 @@
 	margin: 0;
 	flex: 1 1 auto; /* take available space so close sits to the right */
 	text-align: left;
+	color: $text-primary;
+	font-size: $font-size-lg;
 }
 
 .modal__close {
@@ -68,14 +77,26 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 36px;
-	height: 36px;
-	border-radius: 50%;
+	width: 32px;
+	height: 32px;
+	border-radius: $radius-md;
 	background: transparent;
 	border: none;
-	font-size: 1.25rem;
+	font-size: 18px;
 	line-height: 1;
 	padding: 0;
+	color: $text-secondary;
+	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+	
+	&:hover {
+		background: $neutral-100;
+		color: $text-primary;
+		transform: scale(1.05);
+	}
+	
+	&:active {
+		transform: scale(0.95);
+	}
 }
 
 .modal__close span {
@@ -84,38 +105,78 @@
 }
 
 .modal__body {
-	padding: 16px;
+	padding: $spacing-xl;
 	/* allow only body to scroll when content is large */
 	overflow-y: auto;
 	flex: 1 1 auto;
+	color: $text-primary;
 }
 
 .modal__footer {
 	flex: 0 0 auto;
-}
-
-.modal__close {
-	cursor: pointer;
-}
-
-.modal__title {
-	font-weight: 600;
+	border-top: 1px solid $neutral-200;
 }
 
 .modal__content__buttons {
 	display: flex;
-	gap: 8px;
+	gap: $spacing-sm;
 	justify-content: flex-end;
+	
+	ao-button {
+		min-width: 80px;
+		
+		&#modal-cancel button {
+			background: transparent;
+			color: $text-secondary;
+			border: 1px solid $neutral-300;
+			
+			&:hover {
+				background: $neutral-100;
+				color: $text-primary;
+				border-color: $neutral-400;
+			}
+		}
+		
+		&#modal-confirm button {
+			background: linear-gradient(135deg, $primary-color, $primary-dark);
+			color: white;
+			border: none;
+			
+			&:hover {
+				background: linear-gradient(135deg, lighten($primary-color, 5%), $primary-color);
+			}
+		}
+	}
 }
 
-.modal__form { margin-top: 12px; display: block; }
-.modal__form label { display:block; margin-bottom:6px; font-size: .95rem; }
+.modal__form { 
+	margin-top: $spacing-lg; 
+	display: block; 
+}
+
+.modal__form label { 
+	display: block; 
+	margin-bottom: $spacing-xs; 
+	font-size: $font-size-sm;
+	font-weight: 500;
+	color: $text-primary;
+}
+
 .modal__form input {
 	width: 100%;
 	max-width: 100%;
 	box-sizing: border-box; /* include padding/border in width to avoid overflow */
-	padding: 8px;
-	border-radius: 4px;
-	border: 1px solid #ccc;
+	padding: $spacing-sm;
+	border-radius: $radius-md;
+	border: 1px solid $neutral-300;
 	display: block;
+	font-family: $font-family;
+	font-size: $font-size-sm;
+	transition: all 0.2s ease;
+	
+	&:focus {
+		outline: none;
+		border-color: $primary-color;
+		box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+	}
 }
