@@ -16,7 +16,7 @@
             <span class="tab-icon">⚡</span>
             TypeScript
         </button>
-        <button class="copy-btn" *class="getCopyButtonClass()" (click)="copyToClipboard()">
+        <button class="copy-btn {{ getCopyButtonClass() }}" (click)="copyToClipboard()">
             <span class="copy-icon" *if="!copySuccess">📋</span>
             <span class="copy-icon" *if="copySuccess">✅</span>
             {{ getCopyButtonText() }}

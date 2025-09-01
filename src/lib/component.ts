@@ -308,13 +308,16 @@ export abstract class Component extends HTMLElement {
     this.onInit();
     this.syncBindings();
 
-    shadow.innerHTML = shadow.innerHTML.replaceAll(/\(click\)/g, "data-click");
-    shadow.innerHTML = shadow.innerHTML.replaceAll(/\(value\)/g, "data-value");
+  // Safely rewrite Angular-like attributes (click)/(value) to data-* without nuking existing nodes
+  try { this.rewriteTemplateEventAttributes(); } catch {}
 
     // After rewriting innerHTML, previously applied text bindings are lost. Re-sync now.
     try {
       this.syncBindings();
     } catch {}
+
+  // Fill any residual single-mustache text nodes that escaped preprocessing
+  try { this.fillResidualMustachesTextNodes(); } catch {}
 
     // wire event and value listeners for current DOM (including clones created later)
     try {
@@ -420,6 +423,24 @@ export abstract class Component extends HTMLElement {
     try {
       this.evaluateDirectives();
     } catch (e) {}
+  }
+
+  // Traverse shadow DOM and rename attributes like (click) or (value) to data-click/data-value
+  private rewriteTemplateEventAttributes(): void {
+    const root = this.shadowRoot;
+    if (!root) return;
+    const all = root.querySelectorAll('*');
+    for (const el of Array.from(all)) {
+      const attrs = Array.from(el.attributes);
+      for (const a of attrs) {
+        const m = a.name.match(/^\(([^)]+)\)$/);
+        if (!m) continue;
+        const name = m[1];
+        const val = a.value ?? '';
+        try { el.setAttribute(`data-${name}`, val); } catch {}
+        try { el.removeAttribute(a.name); } catch {}
+      }
+    }
   }
 
   // attach click/value listeners for elements; idempotent (marks nodes with data-listener-attached)
@@ -579,6 +600,14 @@ export abstract class Component extends HTMLElement {
     try {
       this.evaluateDirectives();
     } catch (e) {}
+
+    // Update any attribute-based mustache templates
+    try {
+      this.updateAttributeBindings();
+    } catch {}
+
+  // Final pass: evaluate any residual single-mustache text nodes
+  try { this.fillResidualMustachesTextNodes(); } catch {}
   }
 
   private initTemplate(): void {
@@ -748,39 +777,219 @@ export abstract class Component extends HTMLElement {
 
     renderTemplate = this.setDefaultInputs(renderTemplate);
 
-    // extract properties and function calls
-    const regex = /\{\{\s?([a-zA-Z0-9\-\_\.]+(?:\(\))?)\s?\}\}/g;
-    const raw = [...renderTemplate.matchAll(regex)];
-    const matches: { match: string; variable: string }[] = raw.map((m) => ({
-      match: m[0],
-      variable: (m[1] || "").trim(),
-    }));
-
-    for (const match of matches) {
-      // Check if this is a function call
-      if (match.variable.endsWith("()")) {
-        const fnName = match.variable.replace(/\(\)$/, "");
-        // Create a span with a special attribute to mark it as a function call
-        renderTemplate = renderTemplate.replaceAll(
-          match.match,
-          `<span data-bind-function="${fnName}"></span>`
-        );
-      } else {
-        // Regular property binding
-        renderTemplate = renderTemplate.replaceAll(
-          match.match,
-          `<span data-bind="${match.variable}"></span>`
-        );
-      }
-    }
-
+    // Assign HTML first, then walk DOM to safely transform text-node mustaches
+    // and record attribute templates without corrupting markup.
     template.innerHTML = renderTemplate;
+    try {
+      this.preprocessTemplateBindings(template);
+    } catch {}
 
     try {
       /* pre-render debug removed */
     } catch (e) {}
 
-    return { template, matches };
+    // matches are not used downstream anymore; return an empty list for compatibility
+    return { template, matches: [] };
+  }
+
+  // Walk the template DOM to:
+  // - Convert text-node {{ expr }} into span binding nodes
+  // - Detect attribute values with {{ expr }} and store their templates on data-attrs
+  private preprocessTemplateBindings(template: HTMLTemplateElement): void {
+    const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+    const mustache = /\{\{\s*([^}]+)\s*\}\}/g;
+
+    const processTextNode = (textNode: Text) => {
+      const text = textNode.textContent ?? "";
+      if (!mustache.test(text)) return;
+      mustache.lastIndex = 0; // reset
+
+      // If the entire text node is a single mustache, prefer binding on the parent element itself.
+      const singleRe = /^\s*\{\{\s*([^}]+)\s*\}\}\s*$/;
+      const single = text.match(singleRe);
+      const parentEl = textNode.parentElement as HTMLElement | null;
+      if (single && parentEl) {
+        const exprRaw = (single[1] || '').trim();
+        if (exprRaw.endsWith('()')) {
+          const fnName = exprRaw.replace(/\(\)$/, '');
+          parentEl.setAttribute('data-bind-function', fnName);
+        } else {
+          parentEl.setAttribute('data-bind', exprRaw);
+        }
+        // Clear existing content; parent will be populated by syncBindings/updateAllFunctionBindings
+        parentEl.textContent = '';
+        textNode.remove();
+        return;
+      }
+
+      const frag = document.createDocumentFragment();
+      let lastIndex = 0;
+      let m: RegExpExecArray | null;
+      while ((m = mustache.exec(text)) !== null) {
+        const before = text.slice(lastIndex, m.index);
+        if (before) frag.appendChild(document.createTextNode(before));
+        const exprRaw = (m[1] || "").trim();
+        if (exprRaw.endsWith("()")) {
+          const fnName = exprRaw.replace(/\(\)$/, "");
+          const span = document.createElement("span");
+          span.setAttribute("data-bind-function", fnName);
+          frag.appendChild(span);
+        } else {
+          const span = document.createElement("span");
+          span.setAttribute("data-bind", exprRaw);
+          frag.appendChild(span);
+        }
+        lastIndex = (m.index ?? 0) + (m[0]?.length ?? 0);
+      }
+      const after = text.slice(lastIndex);
+      if (after) frag.appendChild(document.createTextNode(after));
+      textNode.replaceWith(frag);
+    };
+
+    const processElementAttributes = (el: Element) => {
+      // Build list first; we'll modify during iteration
+      const attrs = Array.from(el.attributes);
+      const templatedKeys: string[] = [];
+      for (const a of attrs) {
+        const name = a.name;
+        // Skip event-like attributes (click) and similar Angular-style inputs; those are handled elsewhere
+        if (name.startsWith("(") && name.endsWith(")")) continue;
+        const val = a.value ?? "";
+        if (!mustache.test(val)) { mustache.lastIndex = 0; continue; }
+        mustache.lastIndex = 0;
+        // Store original template string and set initial static value (mustaches removed)
+        const staticVal = val.replace(mustache, "").trim();
+        try { el.setAttribute(name, staticVal); } catch {}
+        try { el.setAttribute(`data-attr-template-${name}`, val); } catch {}
+        templatedKeys.push(name);
+      }
+      if (templatedKeys.length) {
+        try { el.setAttribute("data-attr-template-keys", templatedKeys.join(",")); } catch {}
+      }
+    };
+
+    let node: Node | null = walker.currentNode;
+    while (node) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        processTextNode(node as Text);
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        processElementAttributes(node as Element);
+      }
+      node = walker.nextNode();
+    }
+  }
+
+  // Replace {{ expr }} inside recorded attribute templates using current state/props/functions
+  private updateAttributeBindings(): void {
+    const root: ParentNode | null = this.shadowRoot ?? this;
+    if (!root) return;
+    const els = root.querySelectorAll('[data-attr-template-keys]');
+    for (const el of Array.from(els)) {
+      const keysAttr = el.getAttribute('data-attr-template-keys') || '';
+      if (!keysAttr) continue;
+      const keys = keysAttr.split(',').map(k => k.trim()).filter(Boolean);
+      for (const key of keys) {
+        const tmpl = el.getAttribute(`data-attr-template-${key}`);
+        if (!tmpl) continue;
+        const evaluated = this.evaluateAttributeTemplate(tmpl);
+        try { el.setAttribute(key, evaluated); } catch {}
+        // Optionally reflect to the live property for common attributes like value
+        try {
+          const anyEl: any = el as any;
+          if (key === 'value' && 'value' in anyEl) anyEl.value = evaluated;
+        } catch {}
+      }
+    }
+  }
+
+  private evaluateAttributeTemplate(tmpl: string): string {
+    const re = /\{\{\s*([^}]+)\s*\}\}/g;
+    return tmpl.replace(re, (_match, g1) => {
+      const expr = String(g1 || '').trim();
+      try {
+        // simple negation support (!var)
+        if (expr.startsWith('!')) {
+          const inner = expr.slice(1).trim();
+          const v = this.lookupExpression(inner);
+          return (!v ? 'true' : '');
+        }
+        // function call
+        if (/^[_$a-zA-Z][_$a-zA-Z0-9]*\(\)$/.test(expr)) {
+          const fnName = expr.replace(/\(\)$/, '');
+          if (getExposedMethods(this).has(fnName) && typeof (this as any)[fnName] === 'function') {
+            const out = (this as any)[fnName].call(this);
+            return out != null ? String(out) : '';
+          }
+          return '';
+        }
+        // property/path lookup
+        const v = this.lookupExpression(expr);
+        return v != null ? String(v) : '';
+      } catch {
+        return '';
+      }
+    }).trim();
+  }
+
+  private lookupExpression(expr: string): any {
+    const parts = expr.split('.');
+    // Try state first
+    let cur: any = this.state;
+    for (const p of parts) {
+      if (cur == null) break;
+      cur = cur[p];
+    }
+    if (cur !== undefined) return cur;
+    // Fallback to component instance path
+    cur = this as any;
+    for (const p of parts) {
+      if (cur == null) break;
+      cur = cur[p];
+    }
+    return cur;
+  }
+
+  // Fallback: evaluate leftover text nodes containing a single mustache and write the result
+  private fillResidualMustachesTextNodes(): void {
+    const root: ParentNode | null = this.shadowRoot ?? this;
+    if (!root) return;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const singleRe = /^\s*\{\{\s*([^}]+)\s*\}\}\s*$/;
+    let node = walker.currentNode as Text | null;
+    while (node) {
+      try {
+        const txt = node.textContent ?? '';
+        const m = txt.match(singleRe);
+        const parent = node.parentElement as HTMLElement | null;
+        if (!m || !parent) {
+          node = walker.nextNode() as Text | null;
+          continue;
+        }
+        if (parent.hasAttribute('data-bind') || parent.hasAttribute('data-bind-function')) {
+          node = walker.nextNode() as Text | null;
+          continue;
+        }
+        const exprRaw = (m[1] || '').trim();
+        // Convert to real binding on the parent so future updates work automatically
+        if (exprRaw.endsWith('()')) {
+          const fnName = exprRaw.replace(/\(\)$/, '');
+          parent.setAttribute('data-bind-function', fnName);
+          parent.textContent = '';
+          // immediate update
+          this.updateFunctionBinding(fnName, parent);
+        } else {
+          parent.setAttribute('data-bind', exprRaw);
+          parent.textContent = '';
+          // try to get initial value from state/props
+          let v: any;
+          try { v = this.lookupExpression(exprRaw); } catch {}
+          if (v !== undefined) parent.textContent = v != null ? String(v) : '';
+        }
+        // remove the original text node
+        try { node.remove(); } catch {}
+      } catch {}
+      node = walker.nextNode() as Text | null;
+    }
   }
 
   // Re-evaluate structural directives stored on elements (e.g. data-if-expression)
@@ -1050,6 +1259,9 @@ export abstract class Component extends HTMLElement {
     } catch (e) {
       console.error("wireInteractions error", e);
     }
+
+  // After structural changes, refresh attribute bindings as well
+  try { this.updateAttributeBindings(); } catch {}
   }
 
   updateBindings(prop: string, value: unknown = ""): void {
