@@ -1,0 +1,22 @@
+<div class="code-documentation">
+    <div class="debug-info">
+        <p>Debug - htmlCode length: {{ htmlCode.length }}</p>
+        <p>Debug - tsCode length: {{ tsCode.length }}</p>
+        <button (click)="debugProps()">Debug Props</button>
+        <button (click)="testManualSet()">Test Manual Set</button>
+    </div>
+    <div class="code-tabs">
+        <button class="code-tab active" *if="isHtml()" (click)="showHtml()">Template</button>
+        <button class="code-tab" *if="isNotHtml()" (click)="showHtml()">Template</button>
+        <button class="code-tab active" *if="isTs()" (click)="showTs()">TypeScript</button>
+        <button class="code-tab" *if="isNotTs()" (click)="showTs()">TypeScript</button>
+    </div>
+    <div class="code-content">
+        <div class="code-block active" *if="isHtml()">
+            <pre><code>{{ htmlCode }}</code></pre>
+        </div>
+        <div class="code-block active" *if="isTs()">
+            <pre><code>{{ tsCode }}</code></pre>
+        </div>
+    </div>
+</div>

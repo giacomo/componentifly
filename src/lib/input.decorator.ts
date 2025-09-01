@@ -96,37 +96,41 @@ export function installInputPropertyHandlers(ctor: any) {
       configurable: true,
       enumerable: true,
       get: function () {
-
-        // FIRST check if we have a stored value (from programmatic assignment)
+        // Check if we have a stored value (from initialization or programmatic assignment)
         if (Object.prototype.hasOwnProperty.call(this, storageKey)) {
           return (this as any)[storageKey];
         }
-        // SECOND check ORIGINAL HTML attributes (before template processing)
-        try {
-          if (this && (this as any).__originalAttributes) {
-            const originalAttrs = (this as any).__originalAttributes;
-            const originalValue = originalAttrs.get(attributeName);
-            if (originalValue !== undefined) {
-              return originalValue;
-            }
-          }
-        } catch (e) {
-        }
         
-        // Fallback to current HTML attribute (though it may have been processed)
+        // Fallback to current HTML attribute
         try {
           if (this && typeof this.getAttribute === "function") {
-            const attrValue = this.getAttribute(attributeName);
+            let attrValue = this.getAttribute(`[${propertyKey}]`);
+            if (attrValue === null) {
+              attrValue = this.getAttribute(propertyKey);
+            }
+            if (attrValue === null) {
+              attrValue = this.getAttribute(attributeName);
+            }
+            
             if (attrValue !== null) {
               return attrValue;
             }
           }
-        } catch {}
+        } catch (e) {
+          // Silent error handling
+        }
         
         // Finally return default value
         return config.defaultValue;
       },
       set: function (value: any) {
+        // If we're not initializing and this looks like a default value, and we already have a stored value, skip it
+        if (!(this as any).__initializingInputProps && 
+            (value === '' || value === config.defaultValue) &&
+            Object.prototype.hasOwnProperty.call(this, storageKey)) {
+          return;
+        }
+        
         // Store the value
         (this as any)[storageKey] = value;
         
@@ -143,8 +147,9 @@ export function installInputPropertyHandlers(ctor: any) {
         
         // Trigger updates
         try {
-          if (typeof this.updateBindings === "function")
+          if (typeof this.updateBindings === "function") {
             this.updateBindings(propertyKey, value);
+          }
         } catch {}
         try {
           if (typeof (this as any).evaluateDirectives === "function")
@@ -169,6 +174,15 @@ export function installInputPropertyHandlers(ctor: any) {
             this.updateBindings(propertyKey, value);
           }
         } catch {}
+      }
+    };
+  }
+
+  // Add a method to manually set input properties (for debugging)
+  if (!proto.setInputProperty) {
+    proto.setInputProperty = function(propertyKey: string, value: any) {
+      if (inputProps.has(propertyKey)) {
+        (this as any)[propertyKey] = value;
       }
     };
   }

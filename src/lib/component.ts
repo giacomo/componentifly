@@ -1100,44 +1100,101 @@ export abstract class Component extends HTMLElement {
   private processInputPropertiesFromAttributes(): void {
     try {
       const inputProps = getDecoratedInputProps(this);
-      console.debug('[processInputPropertiesFromAttributes] Processing input props for:', this.constructor.name, 'Properties:', Array.from(inputProps.keys()));
+      console.log('[processInputPropertiesFromAttributes] Processing input props for:', this.constructor.name, 'Properties:', Array.from(inputProps.keys()));
+      
+      if (inputProps.size === 0) {
+        console.log('[processInputPropertiesFromAttributes] No input properties found');
+        return;
+      }
       
       // Store original attributes before template processing
       const originalAttributes = new Map<string, string>();
       for (const [propertyKey, config] of inputProps.entries()) {
         const attributeName = config.attributeName || propertyKey.toLowerCase();
+        console.log(`[processInputPropertiesFromAttributes] Looking for property '${propertyKey}' with attribute name '${attributeName}'`);
         
-        // Check for attribute syntax like [name]="value"
-        const bracketAttr = this.getAttribute(`[${attributeName}]`);
-        if (bracketAttr !== null) {
-          console.debug('[processInputPropertiesFromAttributes] Found bracket attribute:', `[${attributeName}]`, '=', bracketAttr);
-          // Remove quotes if present and store the value
-          const cleanValue = bracketAttr.replace(/^['"]|['"]$/g, '');
-          originalAttributes.set(attributeName, cleanValue);
-          // Remove the bracket attribute since we've processed it
-          this.removeAttribute(`[${attributeName}]`);
-        } else {
-          // Check for regular attribute
-          const attrValue = this.getAttribute(attributeName);
+        let found = false;
+        let foundValue = '';
+        let foundAttrName = '';
+        
+        // Try multiple attribute name formats:
+        // 1. [propertyKey] (camelCase in brackets)
+        // 2. [attributeName] (lowercase in brackets)  
+        // 3. propertyKey (camelCase without brackets)
+        // 4. attributeName (lowercase without brackets)
+        
+        const attrsToTry = [
+          `[${propertyKey}]`,
+          `[${attributeName}]`,
+          propertyKey,
+          attributeName
+        ];
+        
+        for (const attrName of attrsToTry) {
+          const attrValue = this.getAttribute(attrName);
           if (attrValue !== null) {
-            console.debug('[processInputPropertiesFromAttributes] Found regular attribute:', attributeName, '=', attrValue);
-            originalAttributes.set(attributeName, attrValue);
+            console.log(`[processInputPropertiesFromAttributes] Found attribute '${attrName}' with value:`, attrValue.substring(0, 100) + '...');
+            foundValue = attrValue;
+            foundAttrName = attrName;
+            found = true;
+            break;
           }
+        }
+        
+        if (found) {
+          // Remove quotes if present and store the value
+          const cleanValue = foundValue.replace(/^['"]|['"]$/g, '');
+          
+          // Store using both the property key and the attribute name as keys
+          // so the getter can find it regardless of which it looks for
+          originalAttributes.set(propertyKey, cleanValue);
+          originalAttributes.set(attributeName, cleanValue);
+          
+          console.log('[processInputPropertiesFromAttributes] Cleaned and stored value:', cleanValue.substring(0, 100) + '...');
+          
+          // Remove the bracket attribute since we've processed it
+          if (foundAttrName.startsWith('[') && foundAttrName.endsWith(']')) {
+            this.removeAttribute(foundAttrName);
+          }
+        } else {
+          console.log(`[processInputPropertiesFromAttributes] No attribute found for property '${propertyKey}'`);
         }
       }
       
       // Store original attributes on the component for later retrieval by property getters
       (this as any).__originalAttributes = originalAttributes;
       
-      // Trigger property getters to sync values
+      // Mark that we're initializing to prevent default values from overwriting
+      (this as any).__initializingInputProps = true;
+      
+      // Initialize stored values with original attribute values
       for (const [propertyKey] of inputProps.entries()) {
         try {
-          // Access the property to trigger the getter and sync the value
-          const value = (this as any)[propertyKey];
-          console.debug('[processInputPropertiesFromAttributes] Synced property:', propertyKey, '=', value);
+          const originalValue = originalAttributes.get(propertyKey);
+          if (originalValue !== undefined) {
+            // Directly set the property to store the original value
+            // This will trigger the setter but should not be blocked since it's a real value
+            (this as any)[propertyKey] = originalValue;
+          }
+          
+          // Manually trigger binding updates for input properties
+          const currentValue = (this as any)[propertyKey];
+          this.updateBindings(propertyKey, currentValue);
         } catch (e) {
-          console.error('[processInputPropertiesFromAttributes] Error syncing property:', propertyKey, e);
+          // Silent error handling
         }
+      }
+      
+      // Clear the initialization flag
+      (this as any).__initializingInputProps = false;
+      
+      // Also call the sync method if it exists
+      try {
+        if (typeof (this as any).syncInputPropertiesFromAttributes === "function") {
+          (this as any).syncInputPropertiesFromAttributes();
+        }
+      } catch (e) {
+        // Silent error handling
       }
     } catch (e) {
       console.error('[processInputPropertiesFromAttributes] Error:', e);
