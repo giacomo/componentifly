@@ -127,6 +127,56 @@ export class CodeDocumentation extends Component {
         return formatted;
     }
 
+    private applySyntaxHighlighting(code: string, language: 'html' | 'typescript'): string {
+        if (!code) return '';
+        
+        if (language === 'html') {
+            return this.highlightHtml(code);
+        } else if (language === 'typescript') {
+            return this.highlightTypeScript(code);
+        }
+        
+        return code;
+    }
+
+    private highlightHtml(code: string): string {
+        return code
+            // HTML tags
+            .replace(/(&lt;\/?)([\w-]+)([^&gt;]*&gt;)/g, 
+                '<span class="tag">$1</span><span class="tag-name">$2</span><span class="tag">$3</span>')
+            // Attributes
+            .replace(/(\w+)(=)(&quot;[^&quot;]*&quot;)/g, 
+                '<span class="attr">$1</span><span class="operator">$2</span><span class="string">$3</span>')
+            // Angular directives
+            .replace(/(\*\w+|\(\w+\)|\[\w+\])/g, '<span class="directive">$1</span>')
+            // Interpolation
+            .replace(/({{[^}]*}})/g, '<span class="interpolation">$1</span>')
+            // Comments
+            .replace(/(&lt;!--[^&gt;]*--&gt;)/g, '<span class="comment">$1</span>');
+    }
+
+    private highlightTypeScript(code: string): string {
+        return code
+            // Keywords
+            .replace(/\b(export|class|function|interface|type|const|let|var|if|else|for|while|return|import|from|extends|implements|public|private|protected|static|async|await|try|catch|finally|throw|new|this|super)\b/g, 
+                '<span class="keyword">$1</span>')
+            // Decorators
+            .replace(/(@\w+)/g, '<span class="decorator">$1</span>')
+            // Types
+            .replace(/:\s*(\w+)(\[\])?/g, ': <span class="type">$1$2</span>')
+            // Strings
+            .replace(/(["'`][^"'`]*["'`])/g, '<span class="string">$1</span>')
+            // Numbers
+            .replace(/\b(\d+\.?\d*)\b/g, '<span class="number">$1</span>')
+            // Functions
+            .replace(/(\w+)(\s*\()/g, '<span class="function">$1</span>$2')
+            // Comments
+            .replace(/(\/\/[^\n]*)/g, '<span class="comment">$1</span>')
+            .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="comment">$1</span>')
+            // Class names (capitalized words)
+            .replace(/\b([A-Z]\w+)\b/g, '<span class="class-name">$1</span>');
+    }
+
     @Expose
     getCopyButtonText(): string {
         return this.copySuccess ? 'Copied!' : 'Copy';
@@ -135,38 +185,5 @@ export class CodeDocumentation extends Component {
     @Expose
     getCopyButtonClass(): string {
         return this.copySuccess ? 'copy-btn copy-btn--success' : 'copy-btn';
-    }
-
-    @Expose
-    debugProps(): void {
-        console.log('=== DEBUG PROPS ===');
-        console.log('htmlCode property value:', this.htmlCode);
-        console.log('tsCode property value:', this.tsCode);
-        console.log('htmlCode descriptor:', Object.getOwnPropertyDescriptor(this, 'htmlCode'));
-        console.log('tsCode descriptor:', Object.getOwnPropertyDescriptor(this, 'tsCode'));
-        console.log('Proto htmlCode descriptor:', Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this), 'htmlCode'));
-        console.log('Proto tsCode descriptor:', Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this), 'tsCode'));
-        console.log('__originalAttributes:', (this as any).__originalAttributes);
-        console.log('All attributes:');
-        for (let i = 0; i < this.attributes.length; i++) {
-            const attr = this.attributes[i];
-            console.log(`  ${attr.name} = "${attr.value}"`);
-        }
-        
-        // Test manual setting
-        console.log('Testing manual property setting...');
-        if (typeof (this as any).setInputProperty === 'function') {
-            (this as any).setInputProperty('htmlCode', 'Manually set HTML code!');
-            (this as any).setInputProperty('tsCode', 'Manually set TypeScript code!');
-        }
-    }
-
-    @Expose
-    testManualSet(): void {
-        console.log('Setting properties manually...');
-        this.htmlCode = 'Test HTML Code Set Directly';
-        this.tsCode = 'Test TypeScript Code Set Directly';
-        console.log('htmlCode after manual set:', this.htmlCode);
-        console.log('tsCode after manual set:', this.tsCode);
     }
 }
