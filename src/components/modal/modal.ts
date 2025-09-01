@@ -10,6 +10,26 @@ export class Modal extends Component {
     @StateProperty formName: string = '';
     @StateProperty showForm: boolean = false;
     private __lastAction: 'idle' | 'confirm' | 'cancel' = 'idle';
+    private __updateTimeout: number | null = null;
+
+    // Override updateBindings to prevent excessive updates when modal is open
+    updateBindings(prop: string, value: unknown = ""): void {
+        if (this.isOpen && this.__updateTimeout) {
+            // If modal is open and there's already a pending update, skip this one
+            return;
+        }
+        
+        if (this.isOpen) {
+            // Debounce binding updates when modal is open to prevent flickering
+            this.__updateTimeout = window.setTimeout(() => {
+                super.updateBindings(prop, value);
+                this.__updateTimeout = null;
+            }, 16); // Roughly 60fps
+        } else {
+            // When modal is closed, update normally
+            super.updateBindings(prop, value);
+        }
+    }
 
     // template & styles provided by decorator
 

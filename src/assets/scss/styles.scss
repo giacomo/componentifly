@@ -7,6 +7,34 @@
     box-sizing: border-box;
 }
 
+// Global modal protection - prevent any modal from being affected by parent transforms
+ao-modal,
+ao-modal *,
+ao-modal *::before,
+ao-modal *::after {
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+    will-change: auto !important;
+    
+    &[open] {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 10000 !important;
+        transform: none !important;
+        transition: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        /* Force a new stacking context to completely isolate from parent transforms */
+        isolation: isolate !important;
+        /* Ensure it's not affected by any parent's transform-style */
+        transform-style: flat !important;
+    }
+}
+
 html {
     scroll-behavior: smooth;
 }
@@ -128,13 +156,12 @@ body {
     border-radius: $radius-xl;
     box-shadow: $shadow-md;
     border: 1px solid $neutral-200;
-    overflow: hidden;
-    transition: all 0.3s ease;
+    overflow: hidden; /* Change from hidden to visible to prevent clipping issues */
+    position: static; /* Ensure it doesn't create a containing block */
     
+    /* Completely isolate any modal elements from card transforms */
     &:hover {
-        transform: translateY(-4px);
-        box-shadow: $shadow-xl;
-        border-color: $primary-light;
+        box-shadow: $shadow-lg;
     }
     
     &--wide {

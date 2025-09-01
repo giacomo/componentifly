@@ -1,66 +1,9 @@
-// Import variables for consistent styling
-@import '../../assets/scss/partials/variables';
-
-.modal-demo { 
-  display: flex; 
-  flex-direction: column; 
-  gap: $spacing-lg; 
-  align-items: flex-start; 
-}
-
-.demo-grid { 
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: $spacing-sm; 
-  width: 100%;
-  
-  ao-button {
-    min-height: 40px;
-    
-    button {
-      width: 100%;
-      font-size: $font-size-xs;
-      padding: $spacing-sm;
-      
-      &:nth-child(1) {
-        background: linear-gradient(135deg, $primary-color, $primary-dark);
-      }
-      
-      &:nth-child(2) {
-        background: linear-gradient(135deg, $secondary-color, darken($secondary-color, 10%));
-      }
-      
-      &:nth-child(3) {
-        background: linear-gradient(135deg, $success, darken($success, 10%));
-      }
-      
-      &:nth-child(4) {
-        background: linear-gradient(135deg, $warning, darken($warning, 10%));
-      }
-      
-      &:nth-child(5) {
-        background: linear-gradient(135deg, $error, darken($error, 10%));
-      }
-      
-      &:nth-child(6) {
-        background: linear-gradient(135deg, $neutral-600, $neutral-700);
-      }
-    }
-  }
-}
-
-.demo-result {
-  padding: $spacing-sm $spacing-md;
-  background: $neutral-100;
-  border-radius: $radius-md;
-  font-size: $font-size-sm;
-  color: $text-secondary;
-  border: 1px solid $neutral-200;
-  font-weight: 500;
-}
+.modal-demo { display:flex; flex-direction:column; gap:12px; align-items:flex-start; }
+.demo-grid { display:flex; gap:8px; flex-wrap:wrap; }
 
 /* ensure modal body can scroll for large content */
-.modal__body { 
-  max-height: 60vh; 
-  overflow: auto; 
+.modal__body { max-height: 60vh; overflow: auto; }
+
+ao-modal {
+  display: none;
 }
