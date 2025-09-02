@@ -19,7 +19,7 @@
         <button class="copy-btn {{ getCopyButtonClass() }}" (click)="copyToClipboard()">
             <span class="copy-icon" *if="!copySuccess">📋</span>
             <span class="copy-icon" *if="copySuccess">✅</span>
-            {{ getCopyButtonText() }}
+            <span>{{ getCopyButtonText() }}</span>
         </button>
     </div>
     <div class="code-content">

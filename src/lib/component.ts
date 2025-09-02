@@ -357,22 +357,43 @@ export abstract class Component extends HTMLElement {
                   }
                 }
               } else if (expr) {
-                if (
-                  (this as any).state &&
-                  Object.prototype.hasOwnProperty.call(
-                    (this as any).state,
-                    expr
-                  )
-                ) {
-                  show = !!(this as any).state[expr];
-                } else if (
-                  getExposedMethods(this).has(expr) &&
-                  typeof (this as any)[expr] === "function"
-                ) {
-                  try {
-                    show = !!(this as any)[expr].call(this);
-                  } catch (e) {
-                    show = false;
+                // Handle negation expressions like !propertyName
+                if (expr.startsWith("!")) {
+                  const propName = expr.substring(1);
+                  if (
+                    (this as any).state &&
+                    Object.prototype.hasOwnProperty.call((this as any).state, propName)
+                  ) {
+                    show = !(this as any).state[propName];
+                  } else if (
+                    getExposedMethods(this).has(propName) &&
+                    typeof (this as any)[propName] === "function"
+                  ) {
+                    try {
+                      show = !(this as any)[propName].call(this);
+                    } catch (e) {
+                      show = false;
+                    }
+                  }
+                } else {
+                  // Handle regular expressions
+                  if (
+                    (this as any).state &&
+                    Object.prototype.hasOwnProperty.call(
+                      (this as any).state,
+                      expr
+                    )
+                  ) {
+                    show = !!(this as any).state[expr];
+                  } else if (
+                    getExposedMethods(this).has(expr) &&
+                    typeof (this as any)[expr] === "function"
+                  ) {
+                    try {
+                      show = !!(this as any)[expr].call(this);
+                    } catch (e) {
+                      show = false;
+                    }
                   }
                 }
               }
@@ -1017,19 +1038,40 @@ export abstract class Component extends HTMLElement {
               }
             }
           } else if (expr) {
-            if (
-              (this as any).state &&
-              Object.prototype.hasOwnProperty.call((this as any).state, expr)
-            ) {
-              show = !!(this as any).state[expr];
-            } else if (
-              getExposedMethods(this).has(expr) &&
-              typeof (this as any)[expr] === "function"
-            ) {
-              try {
-                show = !!(this as any)[expr].call(this);
-              } catch (e) {
-                show = false;
+            // Handle negation expressions like !propertyName
+            if (expr.startsWith("!")) {
+              const propName = expr.substring(1);
+              if (
+                (this as any).state &&
+                Object.prototype.hasOwnProperty.call((this as any).state, propName)
+              ) {
+                show = !(this as any).state[propName];
+              } else if (
+                getExposedMethods(this).has(propName) &&
+                typeof (this as any)[propName] === "function"
+              ) {
+                try {
+                  show = !(this as any)[propName].call(this);
+                } catch (e) {
+                  show = false;
+                }
+              }
+            } else {
+              // Handle regular expressions
+              if (
+                (this as any).state &&
+                Object.prototype.hasOwnProperty.call((this as any).state, expr)
+              ) {
+                show = !!(this as any).state[expr];
+              } else if (
+                getExposedMethods(this).has(expr) &&
+                typeof (this as any)[expr] === "function"
+              ) {
+                try {
+                  show = !!(this as any)[expr].call(this);
+                } catch (e) {
+                  show = false;
+                }
               }
             }
           }
