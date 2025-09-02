@@ -1344,6 +1344,100 @@ export abstract class Component extends HTMLElement {
   }
 
   /**
+   * Attach this component to the DOM and return a promise that resolves when the component is done.
+   * This is a generic method that handles the lifecycle of showing the component.
+   */
+  public async attach(): Promise<any> {
+    // Append to body if not already attached
+    if (!this.parentNode) {
+      document.body.appendChild(this);
+    }
+    
+    // Wait for the component to be connected and initialized
+    if (!this.isConnected) {
+      await new Promise(resolve => {
+        const observer = new MutationObserver(() => {
+          if (this.isConnected) {
+            observer.disconnect();
+            resolve(void 0);
+          }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+      });
+    }
+    
+    // Create a promise that will be resolved when detach is called
+    return new Promise((resolve) => {
+      (this as any).__attachResolve = resolve;
+    });
+  }
+
+  /**
+   * Remove this component from the DOM and resolve the attach promise.
+   */
+  public detach(result?: any): void {
+    // Resolve the attach promise with the result
+    if ((this as any).__attachResolve) {
+      (this as any).__attachResolve(result || { action: 'cancel', data: {} });
+      (this as any).__attachResolve = null;
+    }
+    
+    // Remove from DOM
+    if (this.parentNode) {
+      this.parentNode.removeChild(this);
+    }
+  }
+
+  /**
+   * Create a new component instance dynamically.
+   * The component will be created but not attached to the DOM automatically.
+   * Returns the created component instance.
+   */
+  public createComponent<T extends Component>(
+    ComponentClass: new () => T,
+    initialData?: any
+  ): T {
+    // Get the selector from the component class
+    const selector = (ComponentClass as any)[Symbol.for("__component_selector")] || 
+                    (ComponentClass as any).selector || 
+                    (ComponentClass as any).is;
+    
+    if (!selector) {
+      throw new Error(`Component ${ComponentClass.name} does not have a selector defined. Use @ComponentDecorator with a selector.`);
+    }
+
+    // Create the component element using the custom element
+    const component = document.createElement(selector) as T;
+    
+    // Set the data property if initialData is provided
+    if (initialData && typeof initialData === 'object') {
+      (component as any).data = initialData;
+    }
+    
+    // Override onInit to be called with initialData when the component is connected
+    if (initialData) {
+      const originalOnInit = component.onInit;
+      component.onInit = function() {
+        // Call original onInit first
+        originalOnInit.call(this);
+        // Then call with initialData if it accepts parameters
+        if (this.onInit.length > 0) {
+          try {
+            originalOnInit.call(this, initialData);
+          } catch (e) {
+            // If the override fails, try calling a custom onInitWithData method
+            if (typeof (this as any).onInitWithData === 'function') {
+              (this as any).onInitWithData(initialData);
+            }
+          }
+        }
+      };
+    }
+    
+    return component;
+  }
+
+  /**
    * Find a child component or element inside this component.
    * - If `selectorOrId` is an id (like "demoModal" or "#demoModal"), it prefers getElementById on the shadow root.
    * - Falls back to querySelector / querySelectorAll on shadow root then host if not found.

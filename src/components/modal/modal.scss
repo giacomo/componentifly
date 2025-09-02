@@ -1,19 +1,12 @@
-:host([open]) {
+:host {
 	/* Force modal to break completely free from any parent transform context */
 	position: fixed !important;
+    display: flex;
 	top: 0 !important;
 	left: 0 !important;
 	width: 100vw !important;
 	height: 100vh !important;
 	z-index: 10000 !important;
-}
-
-:host([open]) .modal__wrapper {
-	display: flex;
-}
-
-:host(:not([open])) .modal__wrapper {
-	display: none;
 }
 
 .modal__wrapper {
