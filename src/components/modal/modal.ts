@@ -2,7 +2,6 @@ import { Component, ComponentDecorator, Expose, StateProperty } from "../../lib"
 
 @ComponentDecorator({ templatePath: './modal.html', stylePath: './modal.scss', selector: 'ao-modal' })
 export class Modal extends Component {
-    @StateProperty isOpen: boolean = false;
     @StateProperty data: any = {};
     @StateProperty title: string = '';
     @StateProperty message: string = '';

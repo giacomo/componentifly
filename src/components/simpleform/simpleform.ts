@@ -4,7 +4,4 @@ import { Component, ComponentDecorator, StateProperty } from "../../lib";
 export class Simpleform extends Component {
     @StateProperty name: string = 'Bob';
 
-    // template & styles provided by decorator
-
-    // No methods to expose for this component
 }
